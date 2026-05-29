@@ -536,6 +536,10 @@ require_once __DIR__ . '/src/SmsHelper.php';
 // Initialize SMS logging table
 require_once __DIR__ . '/src/SmsLogInitializer.php';
 
+// License verification — boots after DB is ready, redirects to activate.php if invalid
+require_once __DIR__ . '/src/LicenseManager.php';
+LicenseManager::boot();
+
 function get_app_currency_code(): string {
     $catalog = get_currency_catalog();
     $code = strtoupper(get_app_setting('currency_code', 'NPR'));
@@ -793,7 +797,7 @@ function get_sms_balance(): array {
 $entryScript = basename((string)($_SERVER['SCRIPT_FILENAME'] ?? ''));
 $appTimezone = get_app_timezone();
 @date_default_timezone_set($appTimezone);
-$publicScripts = ['login.php', 'installer.php'];
+$publicScripts = ['login.php', 'installer.php', 'activate.php'];
 if(!in_array($entryScript, $publicScripts, true)){
     require_auth();
 }

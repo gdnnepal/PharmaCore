@@ -100,6 +100,31 @@ if($_SERVER['REQUEST_METHOD'] === 'POST' && verify_csrf() && isset($_POST['save_
     redirect_with_fallback('?module=settings');
 }
 
+// ── License POST handler ──────────────────────────────────────────────────────
+if($_SERVER['REQUEST_METHOD'] === 'POST' && verify_csrf() && isset($_POST['activate_license'])){
+    require_once __DIR__ . '/../src/LicenseManager.php';
+    $newKey = trim((string)($_POST['license_key'] ?? ''));
+    $licResult = LicenseManager::activate($newKey);
+    if($licResult['valid']){
+        flash_msg('License activated successfully.', 'success');
+    } else {
+        flash_msg('License activation failed: ' . $licResult['message'], 'error');
+    }
+    redirect_with_fallback('?module=settings&tab=license');
+}
+
+if($_SERVER['REQUEST_METHOD'] === 'POST' && verify_csrf() && isset($_POST['refresh_license'])){
+    require_once __DIR__ . '/../src/LicenseManager.php';
+    LicenseManager::clearCache();
+    $licResult = LicenseManager::check(force: true);
+    if($licResult['valid']){
+        flash_msg('License verified successfully.', 'success');
+    } else {
+        flash_msg('License check failed: ' . $licResult['message'], 'error');
+    }
+    redirect_with_fallback('?module=settings&tab=license');
+}
+
 $pharmacyStmt = $pdo->query("SELECT * FROM pharmacy_details WHERE id=1 LIMIT 1");
 $pharmacyDetails = $pharmacyStmt ? ($pharmacyStmt->fetch() ?: null) : null;
 $uiSettingsStmt = $pdo->query("SELECT setting_key, setting_value FROM app_settings WHERE setting_key IN ('show_pos_menu','currency_code','app_timezone','invoice_prefix','invoice_footer_note','sms_provider','sms_api_key','sms_template_due','sms_template_custom')");
@@ -154,6 +179,12 @@ if($selectedSmsProvider === 'spellcpaas' && $smsApiKey !== ''){
 }
 
 $f = flash_msg();
+
+// ── License status for display ────────────────────────────────────────────────
+require_once __DIR__ . '/../src/LicenseManager.php';
+$licenseStatus  = LicenseManager::check();
+$licenseMasked  = LicenseManager::getMaskedKey();
+$activeTab      = trim((string)($_GET['tab'] ?? 'pharmacy'));
 ?>
 
 <div class="max-w-6xl mx-auto space-y-6">
@@ -201,6 +232,17 @@ $f = flash_msg();
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
                         </svg>
                         <span>Notifications</span>
+                    </div>
+                </button>
+                <button type="button" id="settingsTabBtnLicense" class="settings-tab-btn flex-shrink-0 px-6 py-4 text-sm font-medium border-b-2 transition-all duration-200 border-transparent text-slate-600 hover:text-slate-900 hover:border-slate-300" data-tab="settingsTabLicense">
+                    <div class="flex items-center gap-2">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+                        </svg>
+                        <span>License</span>
+                        <?php if(!$licenseStatus['valid']): ?>
+                        <span class="inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700">!</span>
+                        <?php endif; ?>
                     </div>
                 </button>
             </nav>
@@ -555,6 +597,87 @@ $f = flash_msg();
                     </div>
                 </form>
             </div>
+
+            <!-- ── License Tab Panel ─────────────────────────────────────── -->
+            <div id="settingsTabLicense" class="settings-tab-panel hidden">
+                <div class="mb-8">
+                    <h2 class="text-xl font-semibold text-slate-900 mb-2">License</h2>
+                    <p class="text-sm text-slate-600">Manage your PharmaCore software license</p>
+                </div>
+
+                <?php
+                $licBadgeClass = $licenseStatus['valid']
+                    ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
+                    : 'bg-red-50 border-red-200 text-red-800';
+                $licIcon = $licenseStatus['valid']
+                    ? '<path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>'
+                    : '<path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>';
+                ?>
+                <div class="rounded-xl border p-5 mb-6 <?= $licBadgeClass ?>">
+                    <div class="flex items-start gap-3">
+                        <svg class="w-5 h-5 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20"><?= $licIcon ?></svg>
+                        <div class="flex-1 min-w-0">
+                            <p class="font-semibold text-sm">
+                                <?= $licenseStatus['valid'] ? 'License Active' : 'License Invalid' ?>
+                                <?php if(!empty($licenseStatus['plan'])): ?>
+                                    <span class="ml-2 px-2 py-0.5 rounded-full text-xs font-medium bg-white/60"><?= e(ucfirst((string)$licenseStatus['plan'])) ?></span>
+                                <?php endif; ?>
+                            </p>
+                            <p class="text-xs mt-1 opacity-80"><?= e((string)$licenseStatus['message']) ?></p>
+                            <?php if(!empty($licenseStatus['expires_at'])): ?>
+                                <p class="text-xs mt-1 opacity-70">Expires: <?= e(date('d M Y', strtotime((string)$licenseStatus['expires_at']))) ?></p>
+                            <?php endif; ?>
+                            <?php if($licenseMasked !== ''): ?>
+                                <p class="text-xs mt-1 font-mono opacity-60">Key: <?= e($licenseMasked) ?></p>
+                            <?php endif; ?>
+                        </div>
+                        <form method="POST" class="flex-shrink-0">
+                            <input type="hidden" name="csrf" value="<?= csrf_token() ?>">
+                            <input type="hidden" name="refresh_license" value="1">
+                            <button type="submit" title="Re-check license now" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-white/70 hover:bg-white border border-current/20 transition-colors">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                                </svg>
+                                Refresh
+                            </button>
+                        </form>
+                    </div>
+                </div>
+
+                <div class="border border-slate-200 rounded-xl p-6">
+                    <h3 class="text-sm font-semibold text-slate-900 mb-1 uppercase tracking-wider">
+                        <?= $licenseMasked !== '' ? 'Change License Key' : 'Activate License' ?>
+                    </h3>
+                    <p class="text-xs text-slate-500 mb-5">Format: <span class="font-mono">XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX</span></p>
+                    <form method="POST">
+                        <input type="hidden" name="csrf" value="<?= csrf_token() ?>">
+                        <input type="hidden" name="activate_license" value="1">
+                        <div class="flex gap-3">
+                            <input
+                                type="text"
+                                name="license_key"
+                                required
+                                autocomplete="off"
+                                spellcheck="false"
+                                placeholder="XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX"
+                                class="flex-1 px-4 py-2.5 bg-white border border-slate-300 rounded-lg text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all font-mono text-sm tracking-wider"
+                                oninput="this.value=this.value.toUpperCase()"
+                            >
+                            <button type="submit" class="inline-flex items-center gap-2 bg-primary hover:bg-teal-800 text-white px-5 py-2.5 rounded-lg text-sm font-medium transition-colors shadow-sm flex-shrink-0">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+                                </svg>
+                                Activate
+                            </button>
+                        </div>
+                    </form>
+                </div>
+                <p class="text-xs text-slate-400 mt-4 text-center">
+                    Need a license? Contact <a href="mailto:support@gdn.com.np" class="text-teal-600 hover:underline">support@gdn.com.np</a>
+                </p>
+            </div>
+            <!-- ── /License Tab Panel ────────────────────────────────────── -->
+
         </div>
     </div>
 </div>
@@ -615,9 +738,18 @@ document.querySelectorAll('.settings-tab-btn').forEach(btn => {
 
 // Initialize the first tab on page load
 document.addEventListener('DOMContentLoaded', () => {
-    // Activate the first settings tab
-    activateSettingsTab('settingsTabPharmacy');
-    
+    // Activate tab from URL param or default to pharmacy
+    const urlParams = new URLSearchParams(window.location.search);
+    const tabParam = urlParams.get('tab');
+    const tabMap = {
+        'pharmacy':      'settingsTabPharmacy',
+        'app':           'settingsTabUi',
+        'notifications': 'settingsTabNotifications',
+        'license':       'settingsTabLicense',
+    };
+    const initialTab = tabMap[tabParam] || 'settingsTabPharmacy';
+    activateSettingsTab(initialTab);
+
     // Initialize SMS provider sections
     toggleSmsProviderSections();
 });
