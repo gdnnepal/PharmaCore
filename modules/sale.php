@@ -378,6 +378,7 @@ if($_SERVER['REQUEST_METHOD'] === 'POST' && verify_csrf()){
 
         $pdo->commit();
         $_SESSION['invoice_auto_print_id'] = $saleId;
+        $_SESSION['invoice_auto_print_expires'] = time() + 30; // L-5: 30-second TTL
         flash_msg('Sale completed. Invoice ' . $invoiceNo . ' generated.');
         redirect_with_fallback(get_base_url() . '/invoice_print.php?' . http_build_query([
             'invoice_id' => $saleId,

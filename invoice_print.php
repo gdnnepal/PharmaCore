@@ -36,9 +36,13 @@ if(!$sale){
 }
 
 $sessionAutoPrintId = (int)($_SESSION['invoice_auto_print_id'] ?? 0);
-if($sessionAutoPrintId > 0 && $sessionAutoPrintId === $invoiceId){
+$sessionAutoPrintExpires = (int)($_SESSION['invoice_auto_print_expires'] ?? 0);
+if($sessionAutoPrintId > 0 && $sessionAutoPrintId === $invoiceId && (time() <= $sessionAutoPrintExpires)){
     $autoPrint = true;
-    unset($_SESSION['invoice_auto_print_id']);
+    unset($_SESSION['invoice_auto_print_id'], $_SESSION['invoice_auto_print_expires']);
+} elseif($sessionAutoPrintId > 0){
+    // L-5: Expired — clean up stale session variable
+    unset($_SESSION['invoice_auto_print_id'], $_SESSION['invoice_auto_print_expires']);
 }
 
 $itemsStmt = $pdo->prepare("SELECT si.quantity, si.sell_price, si.total, p.name AS product_name, b.batch_no, b.expiry_date FROM sale_items si JOIN products p ON p.id=si.product_id LEFT JOIN batches b ON b.id=si.batch_id WHERE si.sale_id=? ORDER BY si.id ASC");

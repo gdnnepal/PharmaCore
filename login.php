@@ -29,24 +29,29 @@ if($_SERVER['REQUEST_METHOD'] === 'POST'){
         $username = trim((string)($_POST['username'] ?? ''));
         $password = (string)($_POST['password'] ?? '');
 
-        // --- Brute-force protection ---
+        // --- H-5: DB-backed brute-force protection (not bypassable by deleting session cookie) ---
         $maxAttempts  = 10;
         $lockoutSecs  = 15 * 60; // 15 minutes
-        $attemptKey   = 'login_attempts_' . md5($username . '_' . ($_SERVER['REMOTE_ADDR'] ?? ''));
-        $lockKey      = 'login_locked_'   . md5($username . '_' . ($_SERVER['REMOTE_ADDR'] ?? ''));
+        $ip           = (string)($_SERVER['REMOTE_ADDR'] ?? '0.0.0.0');
+        $identifier   = md5(strtolower($username) . '|' . $ip);
 
-        $attempts  = (int)($_SESSION[$attemptKey] ?? 0);
-        $lockedAt  = (int)($_SESSION[$lockKey]    ?? 0);
+        // Clean up old attempts (older than lockout window)
+        try {
+            $pdo->prepare("DELETE FROM login_attempts WHERE identifier=? AND attempted_at < NOW() - INTERVAL ? SECOND")
+                ->execute([$identifier, $lockoutSecs]);
+        } catch(Throwable $e){ /* table may not exist yet on first boot */ }
 
-        if($lockedAt > 0 && (time() - $lockedAt) < $lockoutSecs){
-            $remaining = $lockoutSecs - (time() - $lockedAt);
-            $error = 'Too many failed attempts. Please wait ' . ceil($remaining / 60) . ' minute(s) before trying again.';
+        // Count recent attempts
+        $attempts = 0;
+        try {
+            $countStmt = $pdo->prepare("SELECT COUNT(*) FROM login_attempts WHERE identifier=? AND attempted_at > NOW() - INTERVAL ? SECOND");
+            $countStmt->execute([$identifier, $lockoutSecs]);
+            $attempts = (int)$countStmt->fetchColumn();
+        } catch(Throwable $e){ /* graceful fallback */ }
+
+        if($attempts >= $maxAttempts){
+            $error = 'Too many failed attempts. Please wait 15 minutes before trying again.';
         } else {
-            // Reset lockout if window has passed
-            if($lockedAt > 0 && (time() - $lockedAt) >= $lockoutSecs){
-                unset($_SESSION[$attemptKey], $_SESSION[$lockKey]);
-                $attempts = 0;
-            }
 
             $stmt = $pdo->prepare("SELECT id, username, password_hash, COALESCE(is_admin,0) AS is_admin, COALESCE(is_active,1) AS is_active, COALESCE(branch_id,0) AS branch_id FROM users WHERE username=? LIMIT 1");
             $stmt->execute([$username]);
@@ -77,8 +82,10 @@ if($_SERVER['REQUEST_METHOD'] === 'POST'){
             }
 
             if($isValid){
-                // Successful login — clear attempt counters and regenerate session
-                unset($_SESSION[$attemptKey], $_SESSION[$lockKey]);
+                // Successful login — clear attempts and regenerate session
+                try {
+                    $pdo->prepare("DELETE FROM login_attempts WHERE identifier=?")->execute([$identifier]);
+                } catch(Throwable $e){}
                 session_regenerate_id(true);
 
                 $_SESSION['uid']       = (int)$user['id'];
@@ -94,13 +101,15 @@ if($_SERVER['REQUEST_METHOD'] === 'POST'){
                 exit;
             }
 
-            // Failed login — increment counter
-            $_SESSION[$attemptKey] = $attempts + 1;
-            if(($_SESSION[$attemptKey]) >= $maxAttempts){
-                $_SESSION[$lockKey] = time();
+            // Failed login — record attempt in DB
+            try {
+                $pdo->prepare("INSERT INTO login_attempts (identifier, attempted_at) VALUES (?, NOW())")->execute([$identifier]);
+            } catch(Throwable $e){}
+
+            $remaining = $maxAttempts - ($attempts + 1);
+            if($remaining <= 0){
                 $error = 'Too many failed attempts. Account locked for 15 minutes.';
             } else {
-                $remaining = $maxAttempts - $_SESSION[$attemptKey];
                 $error = 'Invalid username or password. ' . $remaining . ' attempt(s) remaining.';
             }
         }

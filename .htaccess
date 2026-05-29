@@ -3,6 +3,10 @@
 
 <IfModule mod_rewrite.c>
     RewriteEngine On
+
+    # L-1: Force HTTPS in production (comment out for local dev without SSL)
+    # RewriteCond %{HTTPS} off
+    # RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
     
     # Allow direct access to all files and directories in this folder
     RewriteCond %{REQUEST_FILENAME} -f [OR]

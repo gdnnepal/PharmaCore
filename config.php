@@ -131,7 +131,7 @@ try {
 
     $pdo->exec("CREATE TABLE IF NOT EXISTS app_settings (
         setting_key VARCHAR(100) PRIMARY KEY,
-        setting_value VARCHAR(255) NOT NULL,
+        setting_value TEXT NOT NULL,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
     )");
     $pdo->prepare("INSERT IGNORE INTO app_settings(setting_key, setting_value) VALUES('show_pos_menu','1')")->execute();
@@ -304,6 +304,15 @@ try {
     if(!$columnExists('sale_return_logs', 'remarks')){
         $pdo->exec("ALTER TABLE sale_return_logs ADD COLUMN remarks VARCHAR(255) DEFAULT NULL AFTER returned_by_username");
     }
+
+    // H-5: DB-backed login attempt tracking table
+    $pdo->exec("CREATE TABLE IF NOT EXISTS login_attempts (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        identifier VARCHAR(255) NOT NULL,
+        attempted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        INDEX idx_login_attempts_identifier (identifier),
+        INDEX idx_login_attempts_at (attempted_at)
+    )");
 } catch(Throwable $e){
     // Keep app running even if migration checks fail in restricted environments.
 }

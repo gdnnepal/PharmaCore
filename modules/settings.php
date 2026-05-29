@@ -44,6 +44,10 @@ if($_SERVER['REQUEST_METHOD'] === 'POST' && verify_csrf() && isset($_POST['save_
     $invoiceFooterNote = trim((string)($_POST['invoice_footer_note'] ?? ''));
     $invoiceFooterNote = str_replace(["\r\n", "\r"], "\n", $invoiceFooterNote);
     if($invoiceFooterNote === '') $invoiceFooterNote = $defaultInvoiceFooterNote;
+    // M-12: Truncate to 500 chars max (column should be TEXT, but validate anyway)
+    if(mb_strlen($invoiceFooterNote, 'UTF-8') > 500){
+        $invoiceFooterNote = mb_substr($invoiceFooterNote, 0, 500, 'UTF-8');
+    }
 
     $stmt = $pdo->prepare("INSERT INTO app_settings(setting_key, setting_value) VALUES('show_pos_menu', ?) ON DUPLICATE KEY UPDATE setting_value=VALUES(setting_value)");
     $stmt->execute([$showPosMenu]);
