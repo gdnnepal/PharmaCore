@@ -1,0 +1,19 @@
+# PharmaCore - Prevent WordPress from intercepting requests
+# This .htaccess file takes precedence over the root WordPress .htaccess
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    
+    # Allow direct access to all files and directories in this folder
+    RewriteCond %{REQUEST_FILENAME} -f [OR]
+    RewriteCond %{REQUEST_FILENAME} -d
+    RewriteRule ^ - [L]
+    
+    # Don't rewrite requests, just serve the files as-is
+    # This prevents WordPress from taking over
+</IfModule>
+
+# Disable WordPress error handling from parent directory
+<IfModule mod_php.c>
+    php_flag engine on
+</IfModule>

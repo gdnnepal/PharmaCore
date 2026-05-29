@@ -1,0 +1,29 @@
+# Sensitive configuration files
+config.db.php
+
+# Dependency directories
+node_modules/
+vendor/
+
+# Build artifacts
+assets/vendor/
+
+# Lock files (optional - keep package-lock.json if you want reproducible installs)
+# package-lock.json
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE files
+.vscode/
+.idea/
+
+# Logs
+*.log
+
+# Zip archives
+*.zip
+
+# Lock files
+install.lock
