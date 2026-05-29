@@ -170,9 +170,13 @@ $f = flash_msg();
 
 // ── License status for display ────────────────────────────────────────────────
 require_once __DIR__ . '/../src/LicenseManager.php';
-$licenseStatus  = LicenseManager::check();
-$licenseMasked  = LicenseManager::getMaskedKey();
-$activeTab      = trim((string)($_GET['tab'] ?? 'pharmacy'));
+try {
+    $licenseStatus = LicenseManager::check();
+} catch(Throwable $e){
+    $licenseStatus = ['valid' => false, 'status' => 'error', 'message' => 'Could not check license: ' . $e->getMessage(), 'expires_at' => null, 'plan' => null, 'cached' => false];
+}
+$licenseMasked = LicenseManager::getMaskedKey();
+$activeTab = trim((string)($_GET['tab'] ?? 'pharmacy'));
 ?>
 
 <div class="max-w-6xl mx-auto space-y-6">
@@ -615,7 +619,7 @@ $activeTab      = trim((string)($_GET['tab'] ?? 'pharmacy'));
                         <form method="POST" class="flex-shrink-0">
                             <input type="hidden" name="csrf" value="<?= csrf_token() ?>">
                             <input type="hidden" name="refresh_license" value="1">
-                            <button type="submit" title="Re-check license now" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-white/70 hover:bg-white border border-current/20 transition-colors">
+                            <button type="submit" title="Re-check license now" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-white hover:bg-slate-50 border border-slate-300 transition-colors">
                                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
                                 </svg>
