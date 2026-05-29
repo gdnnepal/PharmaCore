@@ -573,10 +573,10 @@ Each task has:
 | Severity | Total | Done |
 |----------|-------|------|
 | 🔴 CRITICAL | 5 | 5 |
-| 🟠 HIGH | 11 | 10 |
-| 🟡 MEDIUM | 16 | 4 |
-| 🔵 LOW | 12 | 10 |
-| **Total** | **44** | **29** |
+| 🟠 HIGH | 11 | 11 |
+| 🟡 MEDIUM | 16 | 8 |
+| 🔵 LOW | 12 | 11 |
+| **Total** | **44** | **35** |
 
 ---
 
