@@ -41,20 +41,17 @@ function get_base_url(): string {
     return $baseUrl;
 }
 
+// Load environment variables from .env (if present)
+require_once __DIR__ . '/src/Env.php';
+Env::load(__DIR__ . '/.env');
+
 $dbConfig = [
-    'host' => '127.0.0.1',
-    'port' => 3306,
-    'name' => 'pharmacy_npr',
-    'user' => 'root',
-    'pass' => '123456',
+    'host' => Env::get('DB_HOST', '127.0.0.1'),
+    'port' => Env::int('DB_PORT', 3306),
+    'name' => Env::get('DB_NAME', 'pharmacy_npr'),
+    'user' => Env::get('DB_USER', 'root'),
+    'pass' => Env::get('DB_PASS', ''),
 ];
-$dbConfigFile = __DIR__ . '/config.db.php';
-if(is_file($dbConfigFile)){
-    $dbConfigOverride = require $dbConfigFile;
-    if(is_array($dbConfigOverride)){
-        $dbConfig = array_merge($dbConfig, $dbConfigOverride);
-    }
-}
 
 $pdo = new PDO(
     "mysql:host=" . $dbConfig['host'] . ";port=" . (int)$dbConfig['port'] . ";dbname=" . $dbConfig['name'] . ";charset=utf8mb4",

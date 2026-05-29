@@ -1,4 +1,5 @@
 # Sensitive configuration files
+.env
 config.db.php
 
 # Dependency directories
