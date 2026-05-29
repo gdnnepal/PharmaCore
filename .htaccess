@@ -13,6 +13,25 @@
     # This prevents WordPress from taking over
 </IfModule>
 
+# ── Security: Block access to sensitive files (C-2, L-2) ─────────────────────
+<FilesMatch "^(\.env|config\.db\.php|install\.sh|pharmacy_npr\.sql|install\.lock|CONTEXT\.md|TASKS\.md|pharmacore-integration\.md|\.gitignore)$">
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Order deny,allow
+        Deny from all
+    </IfModule>
+</FilesMatch>
+
+# ── Security Headers (L-2) ───────────────────────────────────────────────────
+<IfModule mod_headers.c>
+    Header always set X-Frame-Options "SAMEORIGIN"
+    Header always set X-Content-Type-Options "nosniff"
+    Header always set Referrer-Policy "strict-origin-when-cross-origin"
+    Header always set Permissions-Policy "geolocation=(), microphone=(), camera=()"
+</IfModule>
+
 # Disable WordPress error handling from parent directory
 <IfModule mod_php.c>
     php_flag engine on

@@ -203,6 +203,10 @@ if($_SERVER['REQUEST_METHOD'] === 'POST'){
     if($input['db_host'] === '' || $input['db_name'] === '' || $input['db_user'] === ''){
         $errors[] = 'Database host, name, and user are required.';
     }
+    // H-9: Strict DB name validation before use in CREATE DATABASE
+    if($input['db_name'] !== '' && !preg_match('/^[a-zA-Z0-9_]{1,64}$/', $input['db_name'])){
+        $errors[] = 'Database name may only contain letters, numbers, and underscores (max 64 chars).';
+    }
     if(!ctype_digit($input['db_port']) || (int)$input['db_port'] <= 0){
         $errors[] = 'Database port must be a valid positive number.';
     }
@@ -211,8 +215,7 @@ if($_SERVER['REQUEST_METHOD'] === 'POST'){
     }
     if(strlen($adminPassword) < 8){
         $errors[] = 'Admin password must be at least 8 characters.';
-    }
-    if($adminPassword !== $adminConfirm){
+    }    if($adminPassword !== $adminConfirm){
         $errors[] = 'Admin passwords do not match.';
     }
     if($input['pharmacy_name'] === '' || $input['pharmacy_address'] === '' || $input['pharmacy_phone'] === '' || $input['pan_vat'] === '' || $input['dda_no'] === ''){

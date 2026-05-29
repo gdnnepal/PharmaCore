@@ -1,6 +1,12 @@
 <?php
 require_once __DIR__ . '/../config.php';
 
+// H-4: Authorization check — only admins or users with report.view permission
+if(!is_admin_user() && !has_permission('report.view')){
+    flash_msg('You do not have permission to view reports.', 'error');
+    redirect_with_fallback(get_base_url() . '/dashboard.php?module=sale');
+}
+
 $pharmacyStmt = $pdo->query("SELECT * FROM pharmacy_details WHERE id=1 LIMIT 1");
 $pharmacyDetails = $pharmacyStmt ? ($pharmacyStmt->fetch() ?: null) : null;
 

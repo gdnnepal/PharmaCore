@@ -540,6 +540,9 @@ require_once __DIR__ . '/src/SmsLogInitializer.php';
 require_once __DIR__ . '/src/LicenseManager.php';
 LicenseManager::boot();
 
+// Minimum password length — single source of truth (L-4)
+define('MIN_PASSWORD_LENGTH', 8);
+
 function get_app_currency_code(): string {
     $catalog = get_currency_catalog();
     $code = strtoupper(get_app_setting('currency_code', 'NPR'));
@@ -585,8 +588,9 @@ function is_admin_user(): bool {
         $u = $stmt->fetch();
         $username = strtolower(trim((string)($u['username'] ?? ($_SESSION['username'] ?? ''))));
         $_SESSION['username'] = $username;
-        $_SESSION['is_admin'] = $username === 'admin' ? 1 : 0;
-        return $username === 'admin';
+        // H-11: removed username-based admin fallback — return false if is_admin column missing
+        $_SESSION['is_admin'] = 0;
+        return false;
     } catch(Throwable $e){
         $username = strtolower(trim((string)($_SESSION['username'] ?? '')));
         return $username === 'admin';
@@ -653,9 +657,9 @@ function redirect_with_fallback(string $url): void {
     if(!headers_sent()){
         header('Location: ' . $url);
     } else {
-        $safeUrl = e($url);
-        echo "<script>window.location.href='" . $safeUrl . "';</script>";
-        echo "<noscript><meta http-equiv='refresh' content='0;url=" . $safeUrl . "'></noscript>";
+        // Use json_encode for JS context — prevents XSS via single-quote injection (C-5)
+        echo '<script>window.location.href=' . json_encode($url, JSON_HEX_TAG | JSON_HEX_AMP | JSON_UNESCAPED_SLASHES) . ';</script>';
+        echo '<noscript><meta http-equiv="refresh" content="0;url=' . htmlspecialchars($url, ENT_QUOTES | ENT_HTML5, 'UTF-8') . '"></noscript>';
     }
     exit;
 }

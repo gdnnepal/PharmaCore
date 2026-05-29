@@ -43,6 +43,9 @@ class Env {
 
             if($key === '') continue;
 
+            // L-6: Validate key names to prevent putenv injection
+            if(!preg_match('/^[A-Z_][A-Z0-9_]*$/i', $key)) continue;
+
             // Strip surrounding quotes
             if(
                 (str_starts_with($value, '"') && str_ends_with($value, '"')) ||

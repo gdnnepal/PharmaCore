@@ -1,6 +1,12 @@
 <?php
 require_once __DIR__ . '/../config.php';
 
+// H-10: Authorization check — only admins or users with dashboard.view permission
+if(!is_admin_user() && !has_permission('dashboard.view')){
+    flash_msg('You do not have permission to view the dashboard.', 'error');
+    redirect_with_fallback(get_base_url() . '/dashboard.php?module=sale');
+}
+
 $totalSalesToday = (float)$pdo->query("SELECT COALESCE(SUM(total_amount),0) FROM sales WHERE DATE(created_at)=CURDATE()")->fetchColumn();
 $totalInvoicesToday = (int)$pdo->query("SELECT COUNT(*) FROM sales WHERE DATE(created_at)=CURDATE()")->fetchColumn();
 $totalCustomersDue = (int)$pdo->query("SELECT COUNT(*) FROM customers WHERE current_due > 0")->fetchColumn();

@@ -47,6 +47,8 @@ if($_SERVER['REQUEST_METHOD'] !== 'POST' || !verify_csrf()){
 $smsType = trim((string)($_POST['sms_type'] ?? ''));
 $customMessage = trim((string)($_POST['custom_message'] ?? ''));
 $selectedCustomerIds = isset($_POST['customer_ids']) ? (array)$_POST['customer_ids'] : [];
+// H-7: Cast all IDs to positive integers — prevents type confusion in SQL IN() clause
+$selectedCustomerIds = array_values(array_filter(array_map('intval', $selectedCustomerIds), fn($v) => $v > 0));
 
 if($smsType === ''){
     echo json_encode(['success' => false, 'message' => 'SMS type not specified']);

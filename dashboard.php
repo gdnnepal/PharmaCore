@@ -136,8 +136,8 @@ if($_SERVER['REQUEST_METHOD'] === 'POST' && verify_csrf()){
             flash_msg('All password fields are required.', 'error');
             redirect_with_fallback('?module=' . urlencode($module));
         }
-        if(strlen($newPw) < 6){
-            flash_msg('New password must be at least 6 characters.', 'error');
+        if(strlen($newPw) < MIN_PASSWORD_LENGTH){
+            flash_msg('New password must be at least ' . MIN_PASSWORD_LENGTH . ' characters.', 'error');
             redirect_with_fallback('?module=' . urlencode($module));
         }
         if($newPw !== $confirmPw){
@@ -225,6 +225,7 @@ if($currentUserId > 0){
         // Keep navbar render resilient even if metadata lookup fails.
     }
 }
+// M-8: Build module_file only after allowlist check passes
 $module_file = __DIR__ . "/modules/{$module}.php";
 if(!file_exists($module_file)) $module_file = __DIR__ . "/modules/sale.php";
 $moduleTitle = $module === 'stock_transfer_records' ? 'Stock Log' : ucwords(str_replace('_', ' ', $module));

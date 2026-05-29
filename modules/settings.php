@@ -1,6 +1,12 @@
 <?php
 require_once __DIR__ . '/../config.php';
 
+// H-3: Authorization check — only admins or users with settings.manage permission
+if(!is_admin_user() && !has_permission('settings.manage')){
+    flash_msg('You do not have permission to access settings.', 'error');
+    redirect_with_fallback(get_base_url() . '/dashboard.php?module=sale');
+}
+
 if($_SERVER['REQUEST_METHOD'] === 'POST' && verify_csrf() && isset($_POST['save_pharmacy_details'])){
     $pharmacyName = trim((string)($_POST['pharmacy_name'] ?? ''));
     $address = trim((string)($_POST['address'] ?? ''));

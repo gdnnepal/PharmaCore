@@ -62,7 +62,8 @@ try {
 $hasMedicineItems = !empty($items);
 
 $defaultReturnUrl = get_base_url() . '/dashboard.php?module=sale';
-$returnAfterPrintUrl = trim((string)($_GET['return'] ?? ($_SERVER['HTTP_REFERER'] ?? '')));
+// H-1: Remove HTTP_REFERER fallback — it is attacker-controlled
+$returnAfterPrintUrl = trim((string)($_GET['return'] ?? ''));
 if($returnAfterPrintUrl === ''){
     $returnAfterPrintUrl = $defaultReturnUrl;
 }

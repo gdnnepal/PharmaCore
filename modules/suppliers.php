@@ -1,6 +1,12 @@
 <?php
 require_once __DIR__ . '/../config.php';
 
+// H-2: Authorization check — only admins or users with suppliers.manage permission
+if(!is_admin_user() && !has_permission('suppliers.manage')){
+    flash_msg('You do not have permission to manage suppliers.', 'error');
+    redirect_with_fallback(get_base_url() . '/dashboard.php?module=sale');
+}
+
 if($_SERVER['REQUEST_METHOD'] === 'POST' && verify_csrf()){
     try {
         $pdo->beginTransaction();
