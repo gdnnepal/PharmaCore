@@ -72,14 +72,16 @@ class SmsHelper {
 
         if($caCertPath){
             // Production: Use proper SSL verification
-            $options[CURLOPT_CAINFO] = $caCertPath;
-            $options[CURLOPT_SSL_VERIFYPEER] = 1; // Use integer instead of boolean
+            $options[CURLOPT_CAINFO]        = $caCertPath;
+            $options[CURLOPT_SSL_VERIFYPEER] = 1;
             $options[CURLOPT_SSL_VERIFYHOST] = 2;
         } else {
-            // Development: Disable verification as fallback
-            error_log('[SMS Helper] Warning: No SSL certificate bundle found. SSL verification disabled.');
-            $options[CURLOPT_SSL_VERIFYPEER] = 0; // Use integer instead of boolean
-            $options[CURLOPT_SSL_VERIFYHOST] = 0;
+            // Last resort: try to use the system's default CA store via curl
+            // CURLOPT_SSL_VERIFYPEER=true without CURLOPT_CAINFO uses the
+            // CA bundle compiled into libcurl (works on most Linux servers).
+            $options[CURLOPT_SSL_VERIFYPEER] = 1;
+            $options[CURLOPT_SSL_VERIFYHOST] = 2;
+            error_log('[SMS Helper] Warning: No explicit CA bundle found. Relying on system CA store.');
         }
 
         return $options;

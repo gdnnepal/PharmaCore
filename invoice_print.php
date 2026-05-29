@@ -71,18 +71,23 @@ $parsedReturn = parse_url($returnAfterPrintUrl);
 if($parsedReturn === false){
     $returnAfterPrintUrl = $defaultReturnUrl;
 } else {
-    $hasAbsoluteTarget = isset($parsedReturn['host']) || isset($parsedReturn['scheme']);
-    if($hasAbsoluteTarget){
+    // Block protocol-relative URLs (//evil.com) and any absolute URL pointing off-site
+    $hasScheme = isset($parsedReturn['scheme']);
+    $hasHost   = isset($parsedReturn['host']);
+    $path      = ltrim((string)($parsedReturn['path'] ?? '/'), '/');
+
+    if($hasScheme || $hasHost || str_starts_with($returnAfterPrintUrl, '//')){
+        // Absolute URL — only allow if host matches exactly
         $currentHost = strtolower((string)($_SERVER['HTTP_HOST'] ?? ''));
-        $targetHost = strtolower((string)($parsedReturn['host'] ?? ''));
-        if($targetHost !== '' && $currentHost !== '' && $targetHost !== $currentHost){
+        $targetHost  = strtolower((string)($parsedReturn['host'] ?? ''));
+        if($targetHost === '' || $currentHost === '' || $targetHost !== $currentHost){
             $returnAfterPrintUrl = $defaultReturnUrl;
         } else {
-            $path = (string)($parsedReturn['path'] ?? '/');
             $query = isset($parsedReturn['query']) ? ('?' . (string)$parsedReturn['query']) : '';
-            $returnAfterPrintUrl = $path . $query;
+            $returnAfterPrintUrl = '/' . $path . $query;
         }
     }
+    // Relative URLs are fine as-is
 }
 
 $invoiceTitle = $copyMode ? 'Copy of Invoice' : 'Invoice';
@@ -419,7 +424,7 @@ function number_to_words_en(float $amount): string {
             var shouldAutoPrint = <?= $autoPrint ? 'true' : 'false' ?>;
             var waitingForPrintClose = false;
             var redirected = false;
-            var redirectUrl = <?= json_encode($returnAfterPrintUrl, JSON_UNESCAPED_SLASHES) ?>;
+            var redirectUrl = <?= json_encode($returnAfterPrintUrl, JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP) ?>;
 
             function redirectAfterPrint(){
                 if(redirected) return;

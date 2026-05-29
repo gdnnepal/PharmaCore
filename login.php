@@ -29,49 +29,80 @@ if($_SERVER['REQUEST_METHOD'] === 'POST'){
         $username = trim((string)($_POST['username'] ?? ''));
         $password = (string)($_POST['password'] ?? '');
 
-        $stmt = $pdo->prepare("SELECT id, username, password_hash, COALESCE(is_admin,0) AS is_admin, COALESCE(is_active,1) AS is_active, COALESCE(branch_id,0) AS branch_id FROM users WHERE username=? LIMIT 1");
-        $stmt->execute([$username]);
-        $user = $stmt->fetch();
+        // --- Brute-force protection ---
+        $maxAttempts  = 10;
+        $lockoutSecs  = 15 * 60; // 15 minutes
+        $attemptKey   = 'login_attempts_' . md5($username . '_' . ($_SERVER['REMOTE_ADDR'] ?? ''));
+        $lockKey      = 'login_locked_'   . md5($username . '_' . ($_SERVER['REMOTE_ADDR'] ?? ''));
 
-        $isValid = false;
-        if($user){
-            $storedHash = (string)($user['password_hash'] ?? '');
+        $attempts  = (int)($_SESSION[$attemptKey] ?? 0);
+        $lockedAt  = (int)($_SESSION[$lockKey]    ?? 0);
 
-            if(password_verify($password, $storedHash)){
-                $isValid = true;
+        if($lockedAt > 0 && (time() - $lockedAt) < $lockoutSecs){
+            $remaining = $lockoutSecs - (time() - $lockedAt);
+            $error = 'Too many failed attempts. Please wait ' . ceil($remaining / 60) . ' minute(s) before trying again.';
+        } else {
+            // Reset lockout if window has passed
+            if($lockedAt > 0 && (time() - $lockedAt) >= $lockoutSecs){
+                unset($_SESSION[$attemptKey], $_SESSION[$lockKey]);
+                $attempts = 0;
             }
 
-            if(!$isValid && preg_match('/^[a-f0-9]{32}$/i', $storedHash)){
-                if(hash_equals(strtolower($storedHash), md5($password))){
+            $stmt = $pdo->prepare("SELECT id, username, password_hash, COALESCE(is_admin,0) AS is_admin, COALESCE(is_active,1) AS is_active, COALESCE(branch_id,0) AS branch_id FROM users WHERE username=? LIMIT 1");
+            $stmt->execute([$username]);
+            $user = $stmt->fetch();
+
+            $isValid = false;
+            if($user){
+                $storedHash = (string)($user['password_hash'] ?? '');
+
+                if(password_verify($password, $storedHash)){
                     $isValid = true;
-                    $newHash = password_hash($password, PASSWORD_DEFAULT);
-                    $up = $pdo->prepare("UPDATE users SET password_hash=? WHERE id=?");
-                    $up->execute([$newHash, (int)$user['id']]);
+                }
+
+                // Migrate legacy MD5 hashes on successful login
+                if(!$isValid && preg_match('/^[a-f0-9]{32}$/i', $storedHash)){
+                    if(hash_equals(strtolower($storedHash), md5($password))){
+                        $isValid = true;
+                        $newHash = password_hash($password, PASSWORD_DEFAULT);
+                        $up = $pdo->prepare("UPDATE users SET password_hash=? WHERE id=?");
+                        $up->execute([$newHash, (int)$user['id']]);
+                    }
                 }
             }
-        }
 
-        if($isValid && (int)($user['is_active'] ?? 0) !== 1){
-            $error = 'This user account is inactive.';
-            $isValid = false;
-        }
-
-        if($isValid){
-            $_SESSION['uid'] = (int)$user['id'];
-            $_SESSION['username'] = (string)($user['username'] ?? '');
-            $_SESSION['branch_id'] = (int)($user['branch_id'] ?? 0);
-            $_SESSION['is_admin'] = (int)($user['is_admin'] ?? 0) ? 1 : 0;
-
-            if((int)$_SESSION['is_admin'] === 1){
-                header('Location: ' . $dashboardUrl . '?module=dashboard');
-            } else {
-                header('Location: ' . $dashboardUrl . '?module=sale');
+            if($isValid && (int)($user['is_active'] ?? 0) !== 1){
+                $error = 'This user account is inactive.';
+                $isValid = false;
             }
-            exit;
-        }
 
-        if($error === ''){
-            $error = 'Invalid username or password.';
+            if($isValid){
+                // Successful login — clear attempt counters and regenerate session
+                unset($_SESSION[$attemptKey], $_SESSION[$lockKey]);
+                session_regenerate_id(true);
+
+                $_SESSION['uid']       = (int)$user['id'];
+                $_SESSION['username']  = (string)($user['username'] ?? '');
+                $_SESSION['branch_id'] = (int)($user['branch_id'] ?? 0);
+                $_SESSION['is_admin']  = (int)($user['is_admin'] ?? 0) ? 1 : 0;
+
+                if((int)$_SESSION['is_admin'] === 1){
+                    header('Location: ' . $dashboardUrl . '?module=dashboard');
+                } else {
+                    header('Location: ' . $dashboardUrl . '?module=sale');
+                }
+                exit;
+            }
+
+            // Failed login — increment counter
+            $_SESSION[$attemptKey] = $attempts + 1;
+            if(($_SESSION[$attemptKey]) >= $maxAttempts){
+                $_SESSION[$lockKey] = time();
+                $error = 'Too many failed attempts. Account locked for 15 minutes.';
+            } else {
+                $remaining = $maxAttempts - $_SESSION[$attemptKey];
+                $error = 'Invalid username or password. ' . $remaining . ' attempt(s) remaining.';
+            }
         }
     }
 }

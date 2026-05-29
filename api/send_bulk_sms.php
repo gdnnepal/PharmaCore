@@ -14,9 +14,7 @@ register_shutdown_function(function(){
         header('Content-Type: application/json; charset=utf-8');
         echo json_encode([
             'success' => false,
-            'message' => 'Fatal error: ' . $error['message'],
-            'error_file' => $error['file'],
-            'error_line' => $error['line']
+            'message' => 'A server error occurred. Please try again.',
         ]);
     }
 });
@@ -30,6 +28,13 @@ header('Content-Type: application/json; charset=utf-8');
 if(!isset($_SESSION['uid'])){
     http_response_code(403);
     echo json_encode(['success' => false, 'message' => 'Unauthorized. Login required.']);
+    exit;
+}
+
+// Only admins or users with settings.manage permission may send bulk SMS
+if(!is_admin_user() && !has_permission('settings.manage')){
+    http_response_code(403);
+    echo json_encode(['success' => false, 'message' => 'Permission denied. You are not allowed to send bulk SMS.']);
     exit;
 }
 

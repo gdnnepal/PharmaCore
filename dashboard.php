@@ -45,7 +45,7 @@ function hard_logout_and_refresh(string $reason = 'logout'): void {
                     await Promise.all(regs.map(function(r){ return r.unregister(); }));
                 }
             } catch (e) {}
-            window.location.replace(<?= json_encode($target, JSON_UNESCAPED_SLASHES) ?>);
+            window.location.replace(<?= json_encode($target, JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP) ?>);
         })();
         </script>
     </body>
@@ -61,6 +61,16 @@ if(($_GET['action'] ?? '') === 'logout' || ($_GET['action'] ?? '') === 'refresh_
 $module = preg_replace('/[^a-zA-Z0-9_-]/','',$_GET['module'] ?? 'sale');
 if($module === 'logout'){
     hard_logout_and_refresh('logout');
+}
+
+// Explicit allowlist — prevents any unexpected file inclusion
+$allowedModules = [
+    'dashboard', 'sale', 'inventory', 'stock_transfer_records', 'suppliers',
+    'customers', 'notifications', 'sales_record', 'report', 'settings',
+    'branches', 'users',
+];
+if(!in_array($module, $allowedModules, true)){
+    $module = 'sale';
 }
 $isAdmin = is_admin_user();
 $currentPermKeys = get_current_user_permissions(true);

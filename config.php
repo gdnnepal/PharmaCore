@@ -1,5 +1,15 @@
 <?php
 declare(strict_types=1);
+
+// Harden session cookie before session_start()
+ini_set('session.cookie_httponly', '1');
+ini_set('session.use_strict_mode', '1');
+ini_set('session.cookie_samesite', 'Lax');
+// Enable secure flag only over HTTPS
+if(!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off'){
+    ini_set('session.cookie_secure', '1');
+}
+
 session_start();
 error_reporting(0);
 ini_set('display_errors', '0');
