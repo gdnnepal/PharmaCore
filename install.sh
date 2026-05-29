@@ -159,9 +159,14 @@ export PHARMACORE_PHARMACY_EMAIL="$PHARMACY_EMAIL"
 export PHARMACORE_PAN_VAT="$PAN_VAT"
 export PHARMACORE_DDA_NO="$DDA_NO"
 
-php - <<'PHPSCRIPT'
+# Write PHP setup script to a temp file (avoids 'php -' stdin issues on restricted shells)
+SETUP_PHP=$(mktemp /tmp/pharmacore_setup_XXXXXX.php)
+cat > "$SETUP_PHP" <<'PHPSCRIPT'
 <?php
 declare(strict_types=1);
+
+// Change to the directory where .env lives
+chdir(getenv('PHARMACORE_INSTALL_DIR') ?: __DIR__);
 
 // Load .env for DB credentials
 $lines = file('.env', FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) ?: [];
@@ -193,7 +198,7 @@ try {
 }
 
 // Import SQL dump
-$sqlFile = __DIR__ . '/pharmacy_npr.sql';
+$sqlFile = getcwd() . '/pharmacy_npr.sql';
 if(is_file($sqlFile)){
     echo "Importing SQL schema...\n";
     $sql = file_get_contents($sqlFile);
@@ -203,6 +208,8 @@ if(is_file($sqlFile)){
         try { $pdo->exec($stmt); } catch(PDOException $e){ /* ignore migration warnings */ }
     }
     echo "Schema imported.\n";
+} else {
+    echo "Warning: pharmacy_npr.sql not found at $sqlFile\n";
 }
 
 // Permissions
@@ -264,17 +271,24 @@ $pdo->prepare('INSERT INTO pharmacy_details(id,pharmacy_name,address,phone_numbe
 $pdo->prepare("INSERT INTO app_settings(setting_key,setting_value) VALUES('show_pos_menu','1') ON DUPLICATE KEY UPDATE setting_value='1'")->execute();
 
 // Write install.lock
-file_put_contents(__DIR__ . '/install.lock', 'Installed via CLI on ' . date('c') . PHP_EOL);
+file_put_contents(getcwd() . '/install.lock', 'Installed via CLI on ' . date('c') . PHP_EOL);
 
 echo "Installation complete.\n";
 PHPSCRIPT
 
-# Clean up exported env vars
+# Run the temp PHP file
+export PHARMACORE_INSTALL_DIR="$INSTALL_DIR"
+php "$SETUP_PHP"
+PHP_EXIT=$?
+
+# Clean up
+rm -f "$SETUP_PHP"
 unset PHARMACORE_ADMIN_USER PHARMACORE_ADMIN_NAME PHARMACORE_ADMIN_PASS
 unset PHARMACORE_PHARMACY_NAME PHARMACORE_PHARMACY_ADDR PHARMACORE_PHARMACY_PHONE
 unset PHARMACORE_PHARMACY_EMAIL PHARMACORE_PAN_VAT PHARMACORE_DDA_NO
+unset PHARMACORE_INSTALL_DIR
 
-if [[ $? -ne 0 ]]; then
+if [[ $PHP_EXIT -ne 0 ]]; then
     die "PHP setup script failed. Check the error above."
 fi
 
