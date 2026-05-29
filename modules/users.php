@@ -32,38 +32,13 @@ foreach($defaultPermissions as $p){
 }
 
 // Fixed permission set for regular users.
-$regularAutoPermissionKeys = [
-    'sale.create',
-    'sales_record.view',
-    'report.view',
-    'customers.create',
-    'customers.delete',
-    'customers.edit',
-    'customers.manage',
-    'customers.view',
-];
+// M-9: Auto-grant removed — default permissions should only be assigned at user creation time.
+// The block that auto-assigned permissions to users with no permissions on every page load
+// has been removed to prevent re-granting intentionally revoked permissions.
 $permMapRows = $pdo->query("SELECT id, permission_key FROM permissions")->fetchAll();
 $permIdByKey = [];
 foreach($permMapRows as $pr){
     $permIdByKey[(string)$pr['permission_key']] = (int)$pr['id'];
-}
-$regularAutoPermissionIds = [];
-foreach($regularAutoPermissionKeys as $pk){
-    if(isset($permIdByKey[$pk])) $regularAutoPermissionIds[] = (int)$permIdByKey[$pk];
-}
-if(!empty($regularAutoPermissionIds)){
-    $usersWithoutPermStmt = $pdo->query("SELECT u.id FROM users u WHERE COALESCE(u.is_admin,0)=0 AND NOT EXISTS (SELECT 1 FROM user_permissions up WHERE up.user_id=u.id)");
-    $usersWithoutPerm = $usersWithoutPermStmt ? $usersWithoutPermStmt->fetchAll() : [];
-    if(!empty($usersWithoutPerm)){
-        $insUP = $pdo->prepare("INSERT IGNORE INTO user_permissions(user_id, permission_id) VALUES(?,?)");
-        foreach($usersWithoutPerm as $uRow){
-            $uid = (int)($uRow['id'] ?? 0);
-            if($uid <= 0) continue;
-            foreach($regularAutoPermissionIds as $pid){
-                $insUP->execute([$uid, $pid]);
-            }
-        }
-    }
 }
 
 if($_SERVER['REQUEST_METHOD'] === 'POST' && verify_csrf()){

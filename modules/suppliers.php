@@ -84,6 +84,9 @@ if($_SERVER['REQUEST_METHOD'] === 'POST' && verify_csrf()){
             if($type !== 'pay' && $type !== 'receive') throw new Exception('Invalid payment type');
             if(!in_array($method, ['cash', 'cheque', 'bank_transfer', 'qr_payment'], true)) throw new Exception('Invalid payment method');
 
+            // M-5: Only admins can edit supplier payment logs (prevents IDOR)
+            if(!is_admin_user()) throw new Exception('Only administrators can edit supplier payment records.');
+
             // Fetch old payment to reverse its effects
             $stmt = $pdo->prepare("SELECT * FROM supplier_payments WHERE id=?");
             $stmt->execute([$logId]);
@@ -115,6 +118,9 @@ if($_SERVER['REQUEST_METHOD'] === 'POST' && verify_csrf()){
             $logId = (int)($_POST['log_id'] ?? 0);
             
             if($logId <= 0) throw new Exception('Invalid payment log');
+
+            // M-5: Only admins can delete supplier payment logs (prevents IDOR)
+            if(!is_admin_user()) throw new Exception('Only administrators can delete supplier payment records.');
 
             // Fetch payment to reverse its effects
             $stmt = $pdo->prepare("SELECT * FROM supplier_payments WHERE id=?");

@@ -143,6 +143,9 @@ if($_SERVER['REQUEST_METHOD']==='POST' && verify_csrf()){
             if($amt <= 0) throw new Exception('Amount must be greater than 0');
             if(!in_array($method, ['cash', 'online'], true)) throw new Exception('Invalid payment method');
 
+            // M-4: Only admins can edit payments (prevents IDOR across branches)
+            if(!is_admin_user()) throw new Exception('Only administrators can edit payment records.');
+
             // Fetch old payment to reverse its effects
             $stmt = $pdo->prepare("SELECT * FROM payments WHERE id=?");
             $stmt->execute([$payId]);
@@ -165,6 +168,9 @@ if($_SERVER['REQUEST_METHOD']==='POST' && verify_csrf()){
             $payId = (int)($_POST['pay_id'] ?? 0);
 
             if($payId <= 0) throw new Exception('Invalid payment');
+
+            // M-4: Only admins can delete payments (prevents IDOR across branches)
+            if(!is_admin_user()) throw new Exception('Only administrators can delete payment records.');
 
             // Fetch payment to reverse its effects
             $stmt = $pdo->prepare("SELECT * FROM payments WHERE id=?");
