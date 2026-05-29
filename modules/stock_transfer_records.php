@@ -352,7 +352,7 @@ var closeReverseModalBtn = document.getElementById('closeReverseModal');
 var reverseDetailModal = document.getElementById('reverseDetailModal');
 var closeReverseDetailModalBtn = document.getElementById('closeReverseDetailModal');
 var reverseDetailBody = document.getElementById('reverseDetailBody');
-var reverseHistoryMap = <?= json_encode($returnMap) ?>;
+var reverseHistoryMap = <?= json_encode($returnMap, JSON_HEX_TAG | JSON_HEX_AMP | JSON_UNESCAPED_UNICODE) ?>;
 
 function openReverseModal(btn){
     if(!reverseModal) return;

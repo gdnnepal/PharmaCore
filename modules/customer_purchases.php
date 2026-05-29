@@ -1,40 +1,7 @@
 <?php
 require_once __DIR__ . '/../config.php';
 
-$saleDateBsCol = $pdo->query("SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='sales' AND COLUMN_NAME='sale_date_bs'")->fetchColumn();
-if((int)$saleDateBsCol === 0){
-    $pdo->exec("ALTER TABLE sales ADD COLUMN sale_date_bs VARCHAR(20) DEFAULT NULL AFTER payment_method");
-}
-
-$soldByUserIdCol = $pdo->query("SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='sales' AND COLUMN_NAME='sold_by_user_id'")->fetchColumn();
-if((int)$soldByUserIdCol === 0){
-    $pdo->exec("ALTER TABLE sales ADD COLUMN sold_by_user_id INT DEFAULT NULL AFTER sale_date_bs");
-}
-
-$soldByUsernameCol = $pdo->query("SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='sales' AND COLUMN_NAME='sold_by_username'")->fetchColumn();
-if((int)$soldByUsernameCol === 0){
-    $pdo->exec("ALTER TABLE sales ADD COLUMN sold_by_username VARCHAR(100) DEFAULT NULL AFTER sold_by_user_id");
-}
-
-$pdo->exec("CREATE TABLE IF NOT EXISTS sale_return_logs (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    sale_id INT NOT NULL,
-    sale_item_id INT NOT NULL,
-    product_id INT NOT NULL,
-    product_name VARCHAR(191) NOT NULL,
-    returned_qty DECIMAL(12,2) NOT NULL DEFAULT 0,
-    returned_by_user_id INT NOT NULL,
-    returned_by_username VARCHAR(100) NOT NULL,
-    remarks VARCHAR(255) DEFAULT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    INDEX idx_srl_sale_id (sale_id),
-    INDEX idx_srl_sale_item_id (sale_item_id)
-)");
-
-$saleReturnRemarksCol = $pdo->query("SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='sale_return_logs' AND COLUMN_NAME='remarks'")->fetchColumn();
-if((int)$saleReturnRemarksCol === 0){
-    $pdo->exec("ALTER TABLE sale_return_logs ADD COLUMN remarks VARCHAR(255) DEFAULT NULL AFTER returned_by_username");
-}
+// H-6: DDL migrations moved to config.php bootstrap block — no longer run on every page load
 
 $isAdmin = is_admin_user();
 $currentUserId = (int)($_SESSION['uid'] ?? 0);

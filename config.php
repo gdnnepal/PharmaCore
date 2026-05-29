@@ -561,6 +561,17 @@ function get_app_timezone(): string {
     return $tz;
 }
 function npr(float $n): string { return get_app_currency_symbol() . ' ' . number_format($n, 2); }
+
+/**
+ * Normalize a Nepal phone number: strip +977 prefix, return 10-digit number.
+ * M-13: Single source of truth for phone normalization.
+ */
+function normalize_nepal_phone(string $phone): string {
+    $phone = trim($phone);
+    $phone = preg_replace('/^\+977/', '', $phone);
+    return $phone;
+}
+
 function csrf_token(): string { if(empty($_SESSION['csrf'])) $_SESSION['csrf'] = bin2hex(random_bytes(32)); return $_SESSION['csrf']; }
 function verify_csrf(): bool { return isset($_POST['csrf']) && hash_equals($_SESSION['csrf'] ?? '', $_POST['csrf']); }
 function require_auth(): void { if(!isset($_SESSION['uid'])) { header('Location: ' . get_base_url() . '/login.php'); exit; } }
@@ -678,7 +689,27 @@ function audit_stringify_value($value): string {
 }
 
 function audit_log_action(string $module, string $action, string $description, array $payload = [], ?string $entityType = null, $entityId = null): void {
-    return;
+    global $pdo;
+    try {
+        $stmt = $pdo->prepare(
+            "INSERT INTO audit_logs (user_id, username, module_name, action_name, entity_type, entity_id, description, payload_json, ip_address, user_agent, created_at)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())"
+        );
+        $stmt->execute([
+            $_SESSION['uid'] ?? null,
+            $_SESSION['username'] ?? null,
+            $module,
+            $action,
+            $entityType,
+            $entityId !== null ? (string)$entityId : null,
+            $description,
+            !empty($payload) ? json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) : null,
+            $_SERVER['REMOTE_ADDR'] ?? null,
+            substr((string)($_SERVER['HTTP_USER_AGENT'] ?? ''), 0, 255),
+        ]);
+    } catch(Throwable $e){
+        error_log('[Audit] Failed to write audit log: ' . $e->getMessage());
+    }
 }
 
 function paginate_array(array $rows, string $pageParam, int $perPage = 10): array {

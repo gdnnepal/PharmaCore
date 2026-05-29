@@ -321,7 +321,7 @@ $defaultToToday = in_array($type, $dateFilteredTypes, true) && $fromBs === '' &&
         var today = getCurrentAdDate();
         var url = new URL(window.location.href);
         url.searchParams.set('module', 'report');
-        url.searchParams.set('type', <?= json_encode($type) ?>);
+        url.searchParams.set('type', <?= json_encode($type, JSON_HEX_TAG | JSON_HEX_AMP) ?>);
         <?php if($selectedBranchId > 0): ?>
         url.searchParams.set('branch_id', <?= (int)$selectedBranchId ?>);
         <?php endif; ?>

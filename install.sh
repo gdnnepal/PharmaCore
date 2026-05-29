@@ -41,14 +41,12 @@ command -v mysql>/dev/null 2>&1 || warn "mysql client not found — DB creation 
 
 PHP_VERSION=$(php -r 'echo PHP_MAJOR_VERSION . "." . PHP_MINOR_VERSION;')
 PHP_MAJOR=$(php -r 'echo PHP_MAJOR_VERSION;')
-PHP_MINOR=$(php -r 'echo PHP_MINOR_VERSION;')
 
 if [[ "$PHP_MAJOR" -lt 8 ]]; then
     die "PHP 8.0+ is required. Found PHP $PHP_VERSION."
 fi
 success "PHP $PHP_VERSION detected."
 
-# Check required PHP extensions
 for ext in pdo pdo_mysql curl json mbstring; do
     php -m | grep -qi "^${ext}$" || die "PHP extension '$ext' is missing. Enable it in php.ini."
 done
@@ -57,7 +55,6 @@ success "All required PHP extensions present."
 # ── Installation directory ────────────────────────────────────────────────────
 INSTALL_DIR=""
 if [[ -f "$(pwd)/config.php" && -f "$(pwd)/installer.php" ]]; then
-    # Already inside the repo
     INSTALL_DIR="$(pwd)"
     info "Running inside existing repo at: $INSTALL_DIR"
 else
@@ -77,7 +74,6 @@ fi
 
 cd "$INSTALL_DIR"
 
-# ── Remove stale install.lock so installer can run ───────────────────────────
 if [[ -f "install.lock" ]]; then
     warn "install.lock found. Removing to allow re-configuration..."
     rm -f install.lock
@@ -125,11 +121,14 @@ read -rp "DDA No:           " DDA_NO
 # ── Create database (if mysql client available) ───────────────────────────────
 if command -v mysql >/dev/null 2>&1; then
     info "Creating database '$DB_NAME' if it doesn't exist..."
-    MYSQL_CMD="mysql -h\"$DB_HOST\" -P\"$DB_PORT\" -u\"$DB_USER\""
-    [[ -n "$DB_PASS" ]] && MYSQL_CMD="$MYSQL_CMD -p\"$DB_PASS\""
-    eval "$MYSQL_CMD -e \"CREATE DATABASE IF NOT EXISTS \\\`${DB_NAME}\\\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;\"" \
+    # L-11: Use --defaults-extra-file to avoid password in process list
+    MYSQL_DEFAULTS=$(mktemp)
+    printf '[client]\nuser=%s\npassword=%s\nhost=%s\nport=%s\n' "$DB_USER" "$DB_PASS" "$DB_HOST" "$DB_PORT" > "$MYSQL_DEFAULTS"
+    chmod 600 "$MYSQL_DEFAULTS"
+    mysql --defaults-extra-file="$MYSQL_DEFAULTS" -e "CREATE DATABASE IF NOT EXISTS \`${DB_NAME}\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;" \
         && success "Database ready." \
         || warn "Could not create database automatically. Create it manually and continue."
+    rm -f "$MYSQL_DEFAULTS"
 fi
 
 # ── Write .env file ───────────────────────────────────────────────────────────
@@ -149,54 +148,65 @@ success ".env written."
 # ── Run PHP CLI installer ─────────────────────────────────────────────────────
 info "Running database setup via PHP CLI..."
 
-php - <<PHPSCRIPT
+# C-4: Pass credentials via environment variables — never interpolate into PHP source
+export PHARMACORE_ADMIN_USER="$ADMIN_USER"
+export PHARMACORE_ADMIN_NAME="$ADMIN_NAME"
+export PHARMACORE_ADMIN_PASS="$ADMIN_PASS"
+export PHARMACORE_PHARMACY_NAME="$PHARMACY_NAME"
+export PHARMACORE_PHARMACY_ADDR="$PHARMACY_ADDR"
+export PHARMACORE_PHARMACY_PHONE="$PHARMACY_PHONE"
+export PHARMACORE_PHARMACY_EMAIL="$PHARMACY_EMAIL"
+export PHARMACORE_PAN_VAT="$PAN_VAT"
+export PHARMACORE_DDA_NO="$DDA_NO"
+
+php - <<'PHPSCRIPT'
 <?php
 declare(strict_types=1);
 
-// Load .env
-\$lines = file('.env', FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) ?: [];
-foreach(\$lines as \$line){
-    \$line = trim(\$line);
-    if(\$line === '' || str_starts_with(\$line, '#') || !str_contains(\$line, '=')) continue;
-    [\$k, \$v] = explode('=', \$line, 2);
-    putenv(trim(\$k) . '=' . trim(\$v));
+// Load .env for DB credentials
+$lines = file('.env', FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) ?: [];
+foreach($lines as $line){
+    $line = trim($line);
+    if($line === '' || str_starts_with($line, '#') || !str_contains($line, '=')) continue;
+    [$k, $v] = explode('=', $line, 2);
+    putenv(trim($k) . '=' . trim($v));
 }
 
-\$host  = getenv('DB_HOST') ?: '127.0.0.1';
-\$port  = (int)(getenv('DB_PORT') ?: 3306);
-\$name  = getenv('DB_NAME') ?: 'pharmacore';
-\$user  = getenv('DB_USER') ?: 'root';
-\$pass  = getenv('DB_PASS') ?: '';
+$host = getenv('DB_HOST') ?: '127.0.0.1';
+$port = (int)(getenv('DB_PORT') ?: 3306);
+$name = getenv('DB_NAME') ?: 'pharmacore';
+$user = getenv('DB_USER') ?: 'root';
+$pass = getenv('DB_PASS') ?: '';
 
-echo "Connecting to MySQL at \$host:\$port ...\n";
+echo "Connecting to MySQL at $host:$port ...\n";
 
 try {
-    \$pdo = new PDO(
-        "mysql:host=\$host;port=\$port;dbname=\$name;charset=utf8mb4",
-        \$user, \$pass,
+    $pdo = new PDO(
+        "mysql:host=$host;port=$port;dbname=$name;charset=utf8mb4",
+        $user, $pass,
         [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION, PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC]
     );
     echo "Connected.\n";
-} catch(PDOException \$e){
-    echo "DB connection failed: " . \$e->getMessage() . "\n";
+} catch(PDOException $e){
+    echo "DB connection failed: " . $e->getMessage() . "\n";
     exit(1);
 }
 
 // Import SQL dump
-\$sqlFile = __DIR__ . '/pharmacy_npr.sql';
-if(is_file(\$sqlFile)){
+$sqlFile = __DIR__ . '/pharmacy_npr.sql';
+if(is_file($sqlFile)){
     echo "Importing SQL schema...\n";
-    \$sql = file_get_contents(\$sqlFile);
-    \$pdo->exec('DROP TRIGGER IF EXISTS trg_audit_logs_no_delete');
-    foreach(array_filter(array_map('trim', explode(';', \$sql))) as \$stmt){
-        if(\$stmt === '' || str_starts_with(\$stmt, '--') || str_starts_with(\$stmt, '/*')) continue;
-        try { \$pdo->exec(\$stmt); } catch(PDOException \$e){ /* ignore migration warnings */ }
+    $sql = file_get_contents($sqlFile);
+    $pdo->exec('DROP TRIGGER IF EXISTS trg_audit_logs_no_delete');
+    foreach(array_filter(array_map('trim', explode(';', $sql))) as $stmt){
+        if($stmt === '' || str_starts_with($stmt, '--') || str_starts_with($stmt, '/*')) continue;
+        try { $pdo->exec($stmt); } catch(PDOException $e){ /* ignore migration warnings */ }
     }
     echo "Schema imported.\n";
 }
 
 // Permissions
-\$perms = [
+$perms = [
     ['dashboard.view','View Dashboard','dashboard'],
     ['sale.create','Create Sale','sales'],
     ['sale.credit','Allow Credit Sale','sales'],
@@ -218,39 +228,51 @@ if(is_file(\$sqlFile)){
     ['branch.manage','Manage Branches','admin'],
     ['user.manage','Manage Users','admin'],
 ];
-\$ins = \$pdo->prepare('INSERT INTO permissions(permission_key,label,category) VALUES(?,?,?) ON DUPLICATE KEY UPDATE label=VALUES(label),category=VALUES(category)');
-foreach(\$perms as \$p) \$ins->execute(\$p);
+$ins = $pdo->prepare('INSERT INTO permissions(permission_key,label,category) VALUES(?,?,?) ON DUPLICATE KEY UPDATE label=VALUES(label),category=VALUES(category)');
+foreach($perms as $p) $ins->execute($p);
 
-// Admin user
-\$adminUser = '${ADMIN_USER}';
-\$adminName = '${ADMIN_NAME}';
-\$adminHash = password_hash('${ADMIN_PASS}', PASSWORD_DEFAULT);
-\$pdo->prepare('INSERT INTO users(username,password_hash,full_name,branch_id,is_admin,is_active) VALUES(?,?,?,NULL,1,1) ON DUPLICATE KEY UPDATE password_hash=VALUES(password_hash),full_name=VALUES(full_name),is_admin=1,is_active=1')
-    ->execute([\$adminUser, \$adminHash, \$adminName]);
+// Admin user — read from environment variables (safe, no shell interpolation)
+$adminUser = getenv('PHARMACORE_ADMIN_USER') ?: 'admin';
+$adminName = getenv('PHARMACORE_ADMIN_NAME') ?: 'Administrator';
+$adminPass = getenv('PHARMACORE_ADMIN_PASS') ?: '';
+$adminHash = password_hash($adminPass, PASSWORD_DEFAULT);
+$pdo->prepare('INSERT INTO users(username,password_hash,full_name,branch_id,is_admin,is_active) VALUES(?,?,?,NULL,1,1) ON DUPLICATE KEY UPDATE password_hash=VALUES(password_hash),full_name=VALUES(full_name),is_admin=1,is_active=1')
+    ->execute([$adminUser, $adminHash, $adminName]);
 
-\$adminId = (int)\$pdo->prepare('SELECT id FROM users WHERE username=? LIMIT 1')->execute([\$adminUser]) ? \$pdo->lastInsertId() : 0;
-\$adminIdStmt = \$pdo->prepare('SELECT id FROM users WHERE username=? LIMIT 1');
-\$adminIdStmt->execute([\$adminUser]);
-\$adminId = (int)\$adminIdStmt->fetchColumn();
+$adminIdStmt = $pdo->prepare('SELECT id FROM users WHERE username=? LIMIT 1');
+$adminIdStmt->execute([$adminUser]);
+$adminId = (int)$adminIdStmt->fetchColumn();
 
-if(\$adminId > 0){
-    \$allPermIds = \$pdo->query('SELECT id FROM permissions')->fetchAll(PDO::FETCH_COLUMN);
-    \$ap = \$pdo->prepare('INSERT IGNORE INTO user_permissions(user_id,permission_id) VALUES(?,?)');
-    foreach(\$allPermIds as \$pid) \$ap->execute([\$adminId, (int)\$pid]);
+if($adminId > 0){
+    $allPermIds = $pdo->query('SELECT id FROM permissions')->fetchAll(PDO::FETCH_COLUMN);
+    $ap = $pdo->prepare('INSERT IGNORE INTO user_permissions(user_id,permission_id) VALUES(?,?)');
+    foreach($allPermIds as $pid) $ap->execute([$adminId, (int)$pid]);
 }
 
-// Pharmacy details
-\$pdo->prepare('INSERT INTO pharmacy_details(id,pharmacy_name,address,phone_number,email,pan_vat,dda_no) VALUES(1,?,?,?,?,?,?) ON DUPLICATE KEY UPDATE pharmacy_name=VALUES(pharmacy_name),address=VALUES(address),phone_number=VALUES(phone_number),email=VALUES(email),pan_vat=VALUES(pan_vat),dda_no=VALUES(dda_no)')
-    ->execute(['${PHARMACY_NAME}','${PHARMACY_ADDR}','${PHARMACY_PHONE}','${PHARMACY_EMAIL}','${PAN_VAT}','${DDA_NO}']);
+// Pharmacy details — read from environment variables
+$pdo->prepare('INSERT INTO pharmacy_details(id,pharmacy_name,address,phone_number,email,pan_vat,dda_no) VALUES(1,?,?,?,?,?,?) ON DUPLICATE KEY UPDATE pharmacy_name=VALUES(pharmacy_name),address=VALUES(address),phone_number=VALUES(phone_number),email=VALUES(email),pan_vat=VALUES(pan_vat),dda_no=VALUES(dda_no)')
+    ->execute([
+        getenv('PHARMACORE_PHARMACY_NAME') ?: '',
+        getenv('PHARMACORE_PHARMACY_ADDR') ?: '',
+        getenv('PHARMACORE_PHARMACY_PHONE') ?: '',
+        getenv('PHARMACORE_PHARMACY_EMAIL') ?: null,
+        getenv('PHARMACORE_PAN_VAT') ?: '',
+        getenv('PHARMACORE_DDA_NO') ?: '',
+    ]);
 
 // App settings
-\$pdo->prepare("INSERT INTO app_settings(setting_key,setting_value) VALUES('show_pos_menu','1') ON DUPLICATE KEY UPDATE setting_value='1'")->execute();
+$pdo->prepare("INSERT INTO app_settings(setting_key,setting_value) VALUES('show_pos_menu','1') ON DUPLICATE KEY UPDATE setting_value='1'")->execute();
 
 // Write install.lock
 file_put_contents(__DIR__ . '/install.lock', 'Installed via CLI on ' . date('c') . PHP_EOL);
 
 echo "Installation complete.\n";
 PHPSCRIPT
+
+# Clean up exported env vars
+unset PHARMACORE_ADMIN_USER PHARMACORE_ADMIN_NAME PHARMACORE_ADMIN_PASS
+unset PHARMACORE_PHARMACY_NAME PHARMACORE_PHARMACY_ADDR PHARMACORE_PHARMACY_PHONE
+unset PHARMACORE_PHARMACY_EMAIL PHARMACORE_PAN_VAT PHARMACORE_DDA_NO
 
 if [[ $? -ne 0 ]]; then
     die "PHP setup script failed. Check the error above."

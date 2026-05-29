@@ -767,7 +767,7 @@ var allBatchOptions = <?php echo json_encode(array_values(array_reduce($batchPri
         'price' => (float)$br['sell_price'],
     ];
     return $carry;
-}, []))); ?>;
+}, [])), JSON_HEX_TAG | JSON_HEX_AMP); ?>;
 
     function formatCurrency(n){
         try{

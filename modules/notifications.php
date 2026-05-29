@@ -327,7 +327,7 @@ if($smsBalance !== null){
 </div>
 
 <script>
-var pharmacyNameForSms = <?= json_encode($pharmacyNameForSms, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>;
+var pharmacyNameForSms = <?= json_encode($pharmacyNameForSms, JSON_HEX_TAG | JSON_HEX_AMP | JSON_UNESCAPED_UNICODE) ?>;
 
 function ensureRequiredPhrnameToken(message){
     var text = (message || '').trim();
