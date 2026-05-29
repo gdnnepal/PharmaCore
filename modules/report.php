@@ -155,7 +155,8 @@ if($type === 'sales'){
             FROM sales s
             LEFT JOIN users u ON u.id=s.sold_by_user_id
             WHERE " . implode(' AND ', $where) . "
-            ORDER BY s.sale_date_bs DESC, s.id DESC";
+            ORDER BY s.sale_date_bs DESC, s.id DESC
+            LIMIT 10000";
     $stmt = $pdo->prepare($sql);
     $stmt->execute($params);
     $salesRows = $stmt->fetchAll();
@@ -176,7 +177,8 @@ if($type === 'dues'){
     $sql = "SELECT c.name, c.phone, c.current_due, c.credit_limit
             FROM customers c
             WHERE " . implode(' AND ', $where) . "
-            ORDER BY c.current_due DESC";
+            ORDER BY c.current_due DESC
+            LIMIT 10000";
     $stmt = $pdo->prepare($sql);
     $stmt->execute($params);
     $duesRows = $stmt->fetchAll();
@@ -193,7 +195,8 @@ if($type === 'expiry'){
             FROM batches b
             JOIN products p ON p.id=b.product_id
             WHERE " . implode(' AND ', $where) . "
-            ORDER BY b.expiry_date ASC";
+            ORDER BY b.expiry_date ASC
+            LIMIT 10000";
     $stmt = $pdo->prepare($sql);
     $stmt->execute($params);
     $expiryRows = $stmt->fetchAll();
@@ -225,7 +228,8 @@ if($type === 'product_sales'){
             JOIN products p ON p.id=si.product_id
             WHERE " . implode(' AND ', $where) . "
             GROUP BY si.product_id
-            ORDER BY total DESC";
+            ORDER BY total DESC
+            LIMIT 10000";
     $stmt = $pdo->prepare($sql);
     $stmt->execute($params);
     $productRows = $stmt->fetchAll();

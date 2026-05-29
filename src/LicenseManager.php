@@ -186,6 +186,15 @@ class LicenseManager
             $raw = (string)($stmt->fetchColumn() ?: '');
             if($raw === '') return null;
 
+            // M-14: Verify HMAC signature to prevent manual DB tampering
+            $sigStmt = $pdo->prepare("SELECT setting_value FROM app_settings WHERE setting_key='license_cache_sig' LIMIT 1");
+            $sigStmt->execute();
+            $storedSig = (string)($sigStmt->fetchColumn() ?: '');
+            $expectedSig = hash_hmac('sha256', $raw, self::getCacheSecret());
+            if($storedSig === '' || !hash_equals($expectedSig, $storedSig)){
+                return null; // tampered or missing signature
+            }
+
             $data = json_decode($raw, true);
             if(!is_array($data)) return null;
 
@@ -203,7 +212,19 @@ class LicenseManager
     private static function setCache(array $result): void
     {
         $result['cached_at'] = time();
-        self::saveSetting('license_cache', (string)json_encode($result));
+        $json = (string)json_encode($result);
+        // M-14: Sign cache with HMAC
+        $sig = hash_hmac('sha256', $json, self::getCacheSecret());
+        self::saveSetting('license_cache', $json);
+        self::saveSetting('license_cache_sig', $sig);
+    }
+
+    /**
+     * M-14: Cache signing secret — unique per installation path
+     */
+    private static function getCacheSecret(): string
+    {
+        return hash('sha256', __DIR__ . '|pharmacore_license_cache_v1');
     }
 
     /**

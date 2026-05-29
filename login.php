@@ -31,17 +31,19 @@ if($_SERVER['REQUEST_METHOD'] === 'POST'){
 
         // --- H-5: DB-backed brute-force protection (not bypassable by deleting session cookie) ---
         $maxAttempts  = 10;
+        $maxIpAttempts = 50; // L-3: IP-only threshold (higher, prevents targeted DoS)
         $lockoutSecs  = 15 * 60; // 15 minutes
         $ip           = (string)($_SERVER['REMOTE_ADDR'] ?? '0.0.0.0');
         $identifier   = md5(strtolower($username) . '|' . $ip);
+        $ipIdentifier = 'ip_' . md5($ip);
 
         // Clean up old attempts (older than lockout window)
         try {
-            $pdo->prepare("DELETE FROM login_attempts WHERE identifier=? AND attempted_at < NOW() - INTERVAL ? SECOND")
-                ->execute([$identifier, $lockoutSecs]);
+            $pdo->prepare("DELETE FROM login_attempts WHERE identifier IN (?,?) AND attempted_at < NOW() - INTERVAL ? SECOND")
+                ->execute([$identifier, $ipIdentifier, $lockoutSecs]);
         } catch(Throwable $e){ /* table may not exist yet on first boot */ }
 
-        // Count recent attempts
+        // Count recent attempts (per username+IP)
         $attempts = 0;
         try {
             $countStmt = $pdo->prepare("SELECT COUNT(*) FROM login_attempts WHERE identifier=? AND attempted_at > NOW() - INTERVAL ? SECOND");
@@ -49,7 +51,15 @@ if($_SERVER['REQUEST_METHOD'] === 'POST'){
             $attempts = (int)$countStmt->fetchColumn();
         } catch(Throwable $e){ /* graceful fallback */ }
 
-        if($attempts >= $maxAttempts){
+        // L-3: Also check IP-only attempts (prevents mass username enumeration from one IP)
+        $ipAttempts = 0;
+        try {
+            $ipCountStmt = $pdo->prepare("SELECT COUNT(*) FROM login_attempts WHERE identifier=? AND attempted_at > NOW() - INTERVAL ? SECOND");
+            $ipCountStmt->execute([$ipIdentifier, $lockoutSecs]);
+            $ipAttempts = (int)$ipCountStmt->fetchColumn();
+        } catch(Throwable $e){}
+
+        if($attempts >= $maxAttempts || $ipAttempts >= $maxIpAttempts){
             $error = 'Too many failed attempts. Please wait 15 minutes before trying again.';
         } else {
 
@@ -84,7 +94,7 @@ if($_SERVER['REQUEST_METHOD'] === 'POST'){
             if($isValid){
                 // Successful login — clear attempts and regenerate session
                 try {
-                    $pdo->prepare("DELETE FROM login_attempts WHERE identifier=?")->execute([$identifier]);
+                    $pdo->prepare("DELETE FROM login_attempts WHERE identifier IN (?,?)")->execute([$identifier, $ipIdentifier]);
                 } catch(Throwable $e){}
                 session_regenerate_id(true);
 
@@ -101,9 +111,10 @@ if($_SERVER['REQUEST_METHOD'] === 'POST'){
                 exit;
             }
 
-            // Failed login — record attempt in DB
+            // Failed login — record attempt in DB (both per-user+IP and per-IP)
             try {
                 $pdo->prepare("INSERT INTO login_attempts (identifier, attempted_at) VALUES (?, NOW())")->execute([$identifier]);
+                $pdo->prepare("INSERT INTO login_attempts (identifier, attempted_at) VALUES (?, NOW())")->execute([$ipIdentifier]);
             } catch(Throwable $e){}
 
             $remaining = $maxAttempts - ($attempts + 1);

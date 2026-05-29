@@ -16,7 +16,8 @@ $viewSaleId = (int)($_GET['view_sale'] ?? 0);
 if($_SERVER['REQUEST_METHOD'] === 'POST' && verify_csrf()){
     $action = (string)($_POST['action'] ?? '');
     if($action === 'sale_return' || $action === 'admin_sale_return'){
-        $canAttemptRefund = $isAdmin || $currentUserId > 0;
+        // M-6: Require admin or explicit sale.return permission (not just any logged-in user)
+        $canAttemptRefund = $isAdmin || has_permission('sale.return');
         if(!$canAttemptRefund){
             flash_msg('You are not allowed to process refund.', 'error');
             redirect_with_fallback('?module=sales_record');

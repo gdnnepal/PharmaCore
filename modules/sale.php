@@ -304,7 +304,8 @@ if($_SERVER['REQUEST_METHOD'] === 'POST' && verify_csrf()){
             }
         }
 
-        // Keep existing request key for backward compatibility, but treat value as AD date.
+        // M-16: Field is named 'sale_date_bs' for backward compatibility but stores AD (Gregorian) date.
+        // The column name in the DB is also 'sale_date_bs' — renaming would break existing data.
         $saleDateAd = trim((string)($_POST['sale_date_bs'] ?? ''));
         if(
             !preg_match('/^(\d{4})-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/', $saleDateAd, $m)

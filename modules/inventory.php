@@ -547,6 +547,14 @@ if($viewProductId > 0){
     $stmt = $pdo->prepare("SELECT p.*,COALESCE(SUM(b.quantity),0) as stock FROM products p LEFT JOIN batches b ON p.id=b.product_id WHERE p.id=? GROUP BY p.id");
     $stmt->execute([$viewProductId]);
     $viewProduct = $stmt->fetch();
+    // M-7: Non-admin users can only view products that have batches in their branch
+    if($viewProduct && !$isAdmin && $currentUserBranchId > 0){
+        $branchCheck = $pdo->prepare("SELECT COUNT(*) FROM batches WHERE product_id=? AND branch_id=?");
+        $branchCheck->execute([$viewProductId, $currentUserBranchId]);
+        if((int)$branchCheck->fetchColumn() === 0){
+            $viewProduct = null;
+        }
+    }
 }
 
 $editBatch = null;
@@ -565,8 +573,14 @@ if($editBatchId > 0){
 
 $viewBatch = null;
 if($viewBatchId > 0){
-    $stmt = $pdo->prepare("SELECT b.*,p.name,p.generic_name,s.name AS supplier_name, br.name AS branch_name FROM batches b JOIN products p ON b.product_id=p.id LEFT JOIN suppliers s ON b.supplier_id=s.id LEFT JOIN branches br ON br.id=b.branch_id WHERE b.id=?");
-    $stmt->execute([$viewBatchId]);
+    if(!$isAdmin && $currentUserBranchId > 0){
+        // M-7: Non-admin users can only view batches from their own branch
+        $stmt = $pdo->prepare("SELECT b.*,p.name,p.generic_name,s.name AS supplier_name, br.name AS branch_name FROM batches b JOIN products p ON b.product_id=p.id LEFT JOIN suppliers s ON b.supplier_id=s.id LEFT JOIN branches br ON br.id=b.branch_id WHERE b.id=? AND b.branch_id=?");
+        $stmt->execute([$viewBatchId, $currentUserBranchId]);
+    } else {
+        $stmt = $pdo->prepare("SELECT b.*,p.name,p.generic_name,s.name AS supplier_name, br.name AS branch_name FROM batches b JOIN products p ON b.product_id=p.id LEFT JOIN suppliers s ON b.supplier_id=s.id LEFT JOIN branches br ON br.id=b.branch_id WHERE b.id=?");
+        $stmt->execute([$viewBatchId]);
+    }
     $viewBatch = $stmt->fetch();
 }
 ?>
