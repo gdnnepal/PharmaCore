@@ -417,7 +417,11 @@ $moduleTitle = $module === 'stock_transfer_records' ? 'Stock Log' : ucwords(str_
             </div>
         </header>
         <main class="flex-1 overflow-y-auto p-5">
-            <?php include $module_file; ?>
+            <?php
+            // Consume flash message ONCE here — rendered as toast via JS below
+            $__flash = flash_msg();
+            include $module_file;
+            ?>
         </main>
     </div>
 </div>
@@ -535,5 +539,49 @@ if(changePasswordModal){
         }
     });
 }
+
+// ── Toast notification system ────────────────────────────────────────────────
+window.__showToast = function(message, type){
+    var container = document.getElementById('toastContainer');
+    if(!container) return;
+
+    var toast = document.createElement('div');
+    toast.className = 'pointer-events-auto flex items-start gap-3 px-4 py-3 rounded-xl shadow-lg border text-sm transition-all duration-300 transform translate-x-full opacity-0 '
+        + (type === 'error'
+            ? 'bg-white border-red-200 text-red-800'
+            : 'bg-white border-emerald-200 text-emerald-800');
+
+    var icon = type === 'error'
+        ? '<svg class="w-4 h-4 mt-0.5 flex-shrink-0 text-red-500" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/></svg>'
+        : '<svg class="w-4 h-4 mt-0.5 flex-shrink-0 text-emerald-500" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>';
+
+    toast.innerHTML = icon + '<span class="flex-1">' + message + '</span>'
+        + '<button onclick="this.parentElement.remove()" class="ml-2 text-slate-400 hover:text-slate-600 flex-shrink-0">&times;</button>';
+
+    container.appendChild(toast);
+
+    // Animate in
+    requestAnimationFrame(function(){
+        toast.classList.remove('translate-x-full', 'opacity-0');
+        toast.classList.add('translate-x-0', 'opacity-100');
+    });
+
+    // Auto-dismiss after 5 seconds
+    setTimeout(function(){
+        toast.classList.add('translate-x-full', 'opacity-0');
+        setTimeout(function(){ toast.remove(); }, 300);
+    }, 5000);
+};
 </script>
+<!-- Toast notification container -->
+<div id="toastContainer" class="fixed top-4 right-4 z-[100] flex flex-col gap-2 pointer-events-none" style="max-width:380px;"></div>
+<?php if($__flash): ?>
+<script>
+(function(){
+    var type = <?= json_encode($__flash['type'] ?? 'success', JSON_HEX_TAG) ?>;
+    var msg = <?= json_encode($__flash['msg'] ?? '', JSON_HEX_TAG | JSON_HEX_AMP) ?>;
+    if(msg) window.__showToast && window.__showToast(msg, type);
+})();
+</script>
+<?php endif; ?>
 </body></html>
