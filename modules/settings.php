@@ -574,13 +574,13 @@ $activeTab = trim((string)($_GET['tab'] ?? 'pharmacy'));
                     <div class="mt-8 flex items-center justify-between pt-6 border-t border-slate-200">
                         <div></div>
                         <div class="flex gap-3">
-                            <p></p>
                             <button type="submit" class="inline-flex items-center gap-2 bg-primary hover:bg-teal-800 text-white px-6 py-2.5 rounded-lg text-sm font-medium transition-colors shadow-sm hover:shadow">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
-                            </svg>
-                            Save Settings
-                        </button>
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                                </svg>
+                                Save Settings
+                            </button>
+                        </div>
                     </div>
                 </form>
             </div>
