@@ -587,7 +587,7 @@ $activeTab = trim((string)($_GET['tab'] ?? 'pharmacy'));
 
             <!-- ── License Tab Panel ─────────────────────────────────────── -->
             <div id="settingsTabLicense" class="settings-tab-panel" style="display:none;">
-                <div class="mb-6">
+                <div class="mb-8">
                     <h2 class="text-xl font-semibold text-slate-900">License</h2>
                     <p class="text-sm text-slate-500 mt-1">Manage your PharmaCore software license</p>
                 </div>
