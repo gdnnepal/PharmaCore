@@ -144,123 +144,86 @@ if($pdo !== null && $success === '' && $error === ''){
     <link rel="stylesheet" href="<?= h($baseUrl . '/css/style.css') ?>">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Inter', system-ui, sans-serif; }
-        .key-input { font-family: 'Courier New', monospace; letter-spacing: 0.08em; }
+        :root {
+            --ink: #0f172a;
+            --mint: #0d9488;
+            --mint-deep: #0f766e;
+            --sand: #f8fafc;
+        }
+        body { font-family: 'Manrope', system-ui, sans-serif; }
+        .key-input { font-family: 'Courier New', monospace; letter-spacing: 0.06em; }
         @keyframes spin { to { transform: rotate(360deg); } }
         .spinner { animation: spin 0.8s linear infinite; }
     </style>
 </head>
-<body class="min-h-screen bg-gradient-to-br from-slate-50 via-white to-teal-50 flex items-center justify-center p-6">
-    <div class="w-full max-w-lg">
-
-        <!-- Logo / Brand -->
-        <div class="text-center mb-8">
-            <div class="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-teal-600 to-teal-800 shadow-lg mb-4">
-                <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
-                </svg>
+<body class="min-h-screen bg-[radial-gradient(circle_at_top_left,_#ccfbf1,_transparent_45%),radial-gradient(circle_at_bottom_right,_#e0f2fe,_transparent_55%),linear-gradient(135deg,#f8fafc_0%,#ecfeff_40%,#f8fafc_100%)] text-slate-800">
+    <div class="min-h-screen grid lg:grid-cols-2">
+        <!-- Left panel — same as login page -->
+        <section class="hidden lg:flex relative overflow-hidden p-12 xl:p-16 bg-[linear-gradient(145deg,#0f766e_0%,#134e4a_45%,#0f172a_100%)] text-white">
+            <div class="absolute -top-24 -left-16 w-72 h-72 rounded-full bg-white/10 blur-2xl"></div>
+            <div class="absolute -bottom-24 -right-16 w-80 h-80 rounded-full bg-teal-300/20 blur-2xl"></div>
+            <div class="relative z-10 max-w-md self-end space-y-6">
+                <p class="text-xs tracking-[0.35em] uppercase text-teal-100">License Activation</p>
+                <h1 class="text-4xl font-extrabold leading-tight">Activate your PharmaCore license to get started.</h1>
+                <p class="text-teal-50/90 text-sm leading-relaxed">Enter your license key to unlock all features. Your license is domain-locked and verified securely.</p>
             </div>
-            <h1 class="text-2xl font-bold text-slate-900">License Activation</h1>
-            <p class="text-slate-500 text-sm mt-1">Enter your PharmaCore license key to continue</p>
-        </div>
+        </section>
 
-        <!-- Card -->
-        <div class="bg-white rounded-2xl shadow-xl border border-slate-200/60 overflow-hidden">
-
-            <!-- Status banner (error from previous redirect) -->
-            <?php if($error !== ''): ?>
-            <div class="px-6 pt-5">
-                <div class="flex items-start gap-3 p-4 rounded-xl bg-red-50 border border-red-200 text-sm text-red-700">
-                    <svg class="w-4 h-4 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
-                    </svg>
-                    <span id="errorBanner"><?= h($error) ?></span>
+        <!-- Right panel — activation form -->
+        <section class="flex items-center justify-center p-6 sm:p-10">
+            <div class="w-full max-w-md bg-white/90 backdrop-blur rounded-3xl border border-white shadow-[0_24px_80px_rgba(15,23,42,0.14)] p-7 sm:p-9">
+                <div class="mb-8">
+                    <p class="text-xs font-bold tracking-[0.25em] uppercase text-teal-700">PharmaCore</p>
+                    <h2 class="mt-2 text-3xl font-extrabold text-slate-900">Activate License</h2>
+                    <p class="mt-1 text-sm text-slate-500">Enter your license key to continue.</p>
                 </div>
-            </div>
-            <?php endif; ?>
 
-            <?php if($success !== ''): ?>
-            <div class="px-6 pt-5">
-                <div class="flex items-start gap-3 p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-sm text-emerald-700">
-                    <svg class="w-4 h-4 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
-                    </svg>
-                    <span><?= h($success) ?></span>
-                </div>
-            </div>
-            <?php endif; ?>
+                <?php if($error !== ''): ?>
+                    <div class="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"><?= h($error) ?></div>
+                <?php endif; ?>
+                <?php if($success !== ''): ?>
+                    <div class="mb-4 rounded-xl border border-teal-200 bg-teal-50 px-4 py-3 text-sm text-teal-800"><?= h($success) ?></div>
+                <?php endif; ?>
 
-            <div class="p-6">
-                <form id="activateForm" method="POST" novalidate>
+                <form id="activateForm" method="POST" novalidate class="space-y-4">
                     <input type="hidden" name="csrf" value="<?= h($csrfToken) ?>">
-
-                    <div class="space-y-4">
-                        <div>
-                            <label class="block text-sm font-semibold text-slate-700 mb-2">
-                                License Key <span class="text-red-500">*</span>
-                            </label>
-                            <input
-                                type="text"
-                                id="licenseKeyInput"
-                                name="license_key"
-                                required
-                                autocomplete="off"
-                                spellcheck="false"
-                                placeholder="XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX"
-                                class="key-input w-full px-4 py-3 border border-slate-300 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent transition text-sm"
-                            >
-                            <p class="text-xs text-slate-500 mt-1.5">Format: 8-4-4-4-12 hexadecimal characters</p>
-                        </div>
-
-                        <!-- Result area (shown after AJAX response) -->
-                        <div id="resultArea" class="hidden"></div>
-
-                        <button
-                            type="submit"
-                            id="activateBtn"
-                            class="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-teal-600 to-teal-700 hover:from-teal-700 hover:to-teal-800 text-white font-semibold py-3 px-6 rounded-xl transition shadow-sm hover:shadow-md"
+                    <div>
+                        <label class="mb-1.5 block text-sm font-semibold text-slate-700">License Key</label>
+                        <input
+                            type="text"
+                            id="licenseKeyInput"
+                            name="license_key"
+                            required
+                            autocomplete="off"
+                            spellcheck="false"
+                            placeholder="XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX"
+                            class="key-input w-full rounded-xl border border-slate-300 bg-white px-4 py-3 outline-none transition focus:border-teal-600 focus:ring-4 focus:ring-teal-100 text-sm"
                         >
-                            <svg id="btnIcon" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
-                            </svg>
-                            <span id="btnText">Activate License</span>
-                        </button>
+                        <p class="text-xs text-slate-400 mt-1.5">UUID format: 8-4-4-4-12 characters</p>
                     </div>
-                </form>
-            </div>
 
-            <!-- Footer info -->
-            <div class="px-6 pb-6 border-t border-slate-100 pt-4">
-                <div class="grid grid-cols-3 gap-3 text-center text-xs text-slate-500">
-                    <div class="flex flex-col items-center gap-1">
-                        <svg class="w-4 h-4 text-teal-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+                    <!-- Result area -->
+                    <div id="resultArea" class="hidden"></div>
+
+                    <button
+                        type="submit"
+                        id="activateBtn"
+                        class="w-full rounded-xl bg-[linear-gradient(135deg,var(--mint)_0%,var(--mint-deep)_100%)] px-4 py-3 text-sm font-bold text-white shadow-lg shadow-teal-900/20 transition hover:translate-y-[-1px] flex items-center justify-center gap-2"
+                    >
+                        <svg id="btnIcon" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
                         </svg>
-                        <span>Secure Verification</span>
-                    </div>
-                    <div class="flex flex-col items-center gap-1">
-                        <svg class="w-4 h-4 text-teal-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9"/>
-                        </svg>
-                        <span>Domain Locked</span>
-                    </div>
-                    <div class="flex flex-col items-center gap-1">
-                        <svg class="w-4 h-4 text-teal-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192l-3.536 3.536M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                        </svg>
-                        <span>24/7 Support</span>
-                    </div>
-                </div>
-                <p class="text-center text-xs text-slate-400 mt-4">
-                    Need a license key? Contact
-                    <a href="mailto:support@gdn.com.np" class="text-teal-600 hover:underline">support@gdn.com.np</a>
+                        <span id="btnText">Activate License</span>
+                    </button>
+                </form>
+
+                <p class="text-center text-xs text-slate-400 mt-6">
+                    Need a license? Contact <a href="mailto:support@gdn.com.np" class="text-teal-600 hover:underline font-medium">support@gdn.com.np</a>
                 </p>
             </div>
-        </div>
-
-        <p class="text-center text-xs text-slate-400 mt-6">PharmaCore &copy; <?= date('Y') ?> GDN Nepal</p>
+        </section>
     </div>
 
     <script>
@@ -272,7 +235,6 @@ if($pdo !== null && $success === '' && $error === ''){
         var resultArea = document.getElementById('resultArea');
         var input      = document.getElementById('licenseKeyInput');
 
-        // Auto-uppercase the key as user types
         input.addEventListener('input', function(){
             var pos = this.selectionStart;
             this.value = this.value.toUpperCase();
@@ -293,30 +255,22 @@ if($pdo !== null && $success === '' && $error === ''){
         function showResult(success, message){
             resultArea.classList.remove('hidden');
             if(success){
-                resultArea.innerHTML = '<div class="flex items-start gap-3 p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-sm text-emerald-700">'
-                    + '<svg class="w-4 h-4 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>'
-                    + '<span>' + message + '</span></div>';
+                resultArea.innerHTML = '<div class="rounded-xl border border-teal-200 bg-teal-50 px-4 py-3 text-sm text-teal-800">' + message + '</div>';
             } else {
-                resultArea.innerHTML = '<div class="flex items-start gap-3 p-4 rounded-xl bg-red-50 border border-red-200 text-sm text-red-700">'
-                    + '<svg class="w-4 h-4 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/></svg>'
-                    + '<span>' + message + '</span></div>';
+                resultArea.innerHTML = '<div class="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">' + message + '</div>';
             }
         }
 
         form.addEventListener('submit', function(e){
             e.preventDefault();
-
             var key = input.value.trim();
             if(key === ''){
                 showResult(false, 'Please enter your license key.');
                 return;
             }
-
             setLoading(true);
             resultArea.classList.add('hidden');
-
             var formData = new FormData(form);
-
             fetch(window.location.href, {
                 method: 'POST',
                 headers: { 'X-Requested-With': 'XMLHttpRequest' },
@@ -329,12 +283,12 @@ if($pdo !== null && $success === '' && $error === ''){
                     showResult(true, data.message + ' Redirecting...');
                     setTimeout(function(){ window.location.href = data.redirect; }, 1500);
                 } else {
-                    showResult(false, data.message || 'Activation failed. Please try again.');
+                    showResult(false, data.message || 'Activation failed.');
                 }
             })
             .catch(function(){
                 setLoading(false);
-                showResult(false, 'Network error. Please check your connection and try again.');
+                showResult(false, 'Network error. Check your connection.');
             });
         });
     })();
