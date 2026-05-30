@@ -53,7 +53,19 @@ if($_SERVER['REQUEST_METHOD'] === 'POST' && verify_csrf()){
             $branchId = (int)($_POST['branch_id'] ?? 0);
             $isAdmin = ((string)($_POST['is_admin'] ?? '0')) === '1' ? 1 : 0;
             $isActive = ((string)($_POST['is_active'] ?? '1')) === '1' ? 1 : 0;
-            $permissionIds = $isAdmin === 1 ? [] : $regularAutoPermissionIds;
+
+            // Build default permission IDs for non-admin users from the permission map
+            $regularAutoPermissionKeys = [
+                'sale.create', 'sales_record.view', 'report.view',
+                'customers.create', 'customers.delete', 'customers.edit',
+                'customers.manage', 'customers.view',
+            ];
+            $permissionIds = [];
+            if($isAdmin === 0){
+                foreach($regularAutoPermissionKeys as $pk){
+                    if(isset($permIdByKey[$pk])) $permissionIds[] = (int)$permIdByKey[$pk];
+                }
+            }
 
             if($username === ''){
                 throw new Exception('Username is required.');
