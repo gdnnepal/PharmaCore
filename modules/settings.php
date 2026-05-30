@@ -693,13 +693,13 @@ function toggleSmsProviderSections(){
     }
 }
 
-document.querySelectorAll('input[name="sms_provider"]').forEach(radio => {
+document.querySelectorAll('input[name="sms_provider"]').forEach(function(radio){
     radio.addEventListener('change', toggleSmsProviderSections);
 });
 
 function activateSettingsTab(tabId){
-    const panels = document.querySelectorAll('.settings-tab-panel');
-    const buttons = document.querySelectorAll('.settings-tab-btn');
+    var panels = document.querySelectorAll('.settings-tab-panel');
+    var buttons = document.querySelectorAll('.settings-tab-btn');
 
     panels.forEach(function(panel){ panel.style.display = 'none'; });
     
@@ -708,8 +708,8 @@ function activateSettingsTab(tabId){
         btn.classList.add('border-transparent', 'text-slate-600');
     });
 
-    const activePanel = document.getElementById(tabId);
-    const activeBtn = document.querySelector('.settings-tab-btn[data-tab="' + tabId + '"]');
+    var activePanel = document.getElementById(tabId);
+    var activeBtn = document.querySelector('.settings-tab-btn[data-tab="' + tabId + '"]');
     
     if(activePanel) activePanel.style.display = 'block';
     if(activeBtn){
@@ -718,31 +718,22 @@ function activateSettingsTab(tabId){
     }
 }
 
-document.querySelectorAll('.settings-tab-btn').forEach(btn => {
-    btn.addEventListener('click', () => activateSettingsTab(btn.getAttribute('data-tab')));
+document.querySelectorAll('.settings-tab-btn').forEach(function(btn){
+    btn.addEventListener('click', function(){ activateSettingsTab(this.getAttribute('data-tab')); });
 });
 
-// Initialize the first tab on page load
-document.addEventListener('DOMContentLoaded', () => {
-    // Initialize the first tab on page load
-    const urlParams = new URLSearchParams(window.location.search);
-    const tabParam = urlParams.get('tab');
-    const tabMap = {
+// Initialize on page load
+(function(){
+    var urlParams = new URLSearchParams(window.location.search);
+    var tabParam = urlParams.get('tab');
+    var tabMap = {
         'pharmacy':      'settingsTabPharmacy',
         'app':           'settingsTabUi',
         'notifications': 'settingsTabNotifications',
-        'license':       'settingsTabLicense',
+        'license':       'settingsTabLicense'
     };
-    const initialTab = tabMap[tabParam] || 'settingsTabPharmacy';
+    var initialTab = tabMap[tabParam] || 'settingsTabPharmacy';
     activateSettingsTab(initialTab);
-
-    // Also handle clicking the License tab button directly (fallback)
-    var licBtn = document.getElementById('settingsTabBtnLicense');
-    if(licBtn){
-        licBtn.addEventListener('click', function(){ activateSettingsTab('settingsTabLicense'); });
-    }
-
-    // Initialize SMS provider sections
     toggleSmsProviderSections();
-});
+})();
 </script>
