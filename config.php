@@ -134,6 +134,15 @@ try {
         setting_value TEXT NOT NULL,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
     )");
+    // Migrate existing installs from VARCHAR(255) to TEXT
+    try {
+        $colTypeStmt = $pdo->prepare("SELECT DATA_TYPE FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='app_settings' AND COLUMN_NAME='setting_value'");
+        $colTypeStmt->execute();
+        $colType = strtolower((string)($colTypeStmt->fetchColumn() ?: ''));
+        if($colType === 'varchar'){
+            $pdo->exec("ALTER TABLE app_settings MODIFY COLUMN setting_value TEXT NOT NULL");
+        }
+    } catch(Throwable $e){}
     $pdo->prepare("INSERT IGNORE INTO app_settings(setting_key, setting_value) VALUES('show_pos_menu','1')")->execute();
     $pdo->prepare("INSERT IGNORE INTO app_settings(setting_key, setting_value) VALUES('currency_code','NPR')")->execute();
     $pdo->prepare("INSERT IGNORE INTO app_settings(setting_key, setting_value) VALUES('app_timezone','Asia/Kathmandu')")->execute();

@@ -170,12 +170,14 @@ $f = flash_msg();
 
 // ── License status for display ────────────────────────────────────────────────
 require_once __DIR__ . '/../src/LicenseManager.php';
+$licenseStatus = ['valid' => false, 'status' => 'unknown', 'message' => 'Unable to check license.', 'expires_at' => null, 'plan' => null];
+$licenseMasked = '';
 try {
     $licenseStatus = LicenseManager::check();
+    $licenseMasked = LicenseManager::getMaskedKey();
 } catch(Throwable $e){
-    $licenseStatus = ['valid' => false, 'status' => 'error', 'message' => 'Could not check license: ' . $e->getMessage(), 'expires_at' => null, 'plan' => null, 'cached' => false];
+    $licenseStatus['message'] = 'License check error: ' . $e->getMessage();
 }
-$licenseMasked = LicenseManager::getMaskedKey();
 $activeTab = trim((string)($_GET['tab'] ?? 'pharmacy'));
 ?>
 
