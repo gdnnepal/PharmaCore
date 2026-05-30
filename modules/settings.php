@@ -722,8 +722,8 @@ document.querySelectorAll('.settings-tab-btn').forEach(function(btn){
     btn.addEventListener('click', function(){ activateSettingsTab(this.getAttribute('data-tab')); });
 });
 
-// Initialize on page load
-(function(){
+// Initialize on page load (use setTimeout to ensure DOM is fully rendered)
+setTimeout(function(){
     var urlParams = new URLSearchParams(window.location.search);
     var tabParam = urlParams.get('tab');
     var tabMap = {
@@ -735,5 +735,5 @@ document.querySelectorAll('.settings-tab-btn').forEach(function(btn){
     var initialTab = tabMap[tabParam] || 'settingsTabPharmacy';
     activateSettingsTab(initialTab);
     toggleSmsProviderSections();
-})();
+}, 0);
 </script>
