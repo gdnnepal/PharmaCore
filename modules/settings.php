@@ -344,7 +344,7 @@ $activeTab = trim((string)($_GET['tab'] ?? 'pharmacy'));
                 </form>
             </div>
 
-            <div id="settingsTabUi" class="settings-tab-panel hidden">
+            <div id="settingsTabUi" class="settings-tab-panel" style="display:none;">
                 <div class="mb-8">
                     <h2 class="text-xl font-semibold text-slate-900 mb-2">Application Preferences</h2>
                     <p class="text-sm text-slate-600">Configure display options and regional settings for your application</p>
@@ -455,7 +455,7 @@ $activeTab = trim((string)($_GET['tab'] ?? 'pharmacy'));
                 </form>
             </div>
 
-            <div id="settingsTabNotifications" class="settings-tab-panel hidden">
+            <div id="settingsTabNotifications" class="settings-tab-panel" style="display:none;">
                 <div class="mb-8">
                     <h2 class="text-xl font-semibold text-slate-900 mb-2">SMS Notifications</h2>
                     <p class="text-sm text-slate-600">Configure SMS service provider for sending notifications to customers and staff</p>
@@ -586,7 +586,7 @@ $activeTab = trim((string)($_GET['tab'] ?? 'pharmacy'));
             </div>
 
             <!-- ── License Tab Panel ─────────────────────────────────────── -->
-            <div id="settingsTabLicense" class="settings-tab-panel hidden">
+            <div id="settingsTabLicense" class="settings-tab-panel" style="display:none;">
                 <div class="mb-6">
                     <h2 class="text-xl font-semibold text-slate-900">License</h2>
                 </div>
@@ -701,19 +701,19 @@ function activateSettingsTab(tabId){
     const panels = document.querySelectorAll('.settings-tab-panel');
     const buttons = document.querySelectorAll('.settings-tab-btn');
 
-    panels.forEach(panel => panel.classList.add('hidden'));
+    panels.forEach(function(panel){ panel.style.display = 'none'; });
     
-    buttons.forEach(btn => {
+    buttons.forEach(function(btn){
         btn.classList.remove('border-primary', 'text-primary');
-        btn.classList.add('border-transparent', 'text-slate-600', 'hover:text-slate-900', 'hover:border-slate-300');
+        btn.classList.add('border-transparent', 'text-slate-600');
     });
 
     const activePanel = document.getElementById(tabId);
     const activeBtn = document.querySelector('.settings-tab-btn[data-tab="' + tabId + '"]');
     
-    if(activePanel) activePanel.classList.remove('hidden');
+    if(activePanel) activePanel.style.display = 'block';
     if(activeBtn){
-        activeBtn.classList.remove('border-transparent', 'text-slate-600', 'hover:text-slate-900', 'hover:border-slate-300');
+        activeBtn.classList.remove('border-transparent', 'text-slate-600');
         activeBtn.classList.add('border-primary', 'text-primary');
     }
 }
