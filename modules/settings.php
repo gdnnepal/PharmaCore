@@ -724,7 +724,7 @@ document.querySelectorAll('.settings-tab-btn').forEach(btn => {
 
 // Initialize the first tab on page load
 document.addEventListener('DOMContentLoaded', () => {
-    // Activate tab from URL param or default to pharmacy
+    // Initialize the first tab on page load
     const urlParams = new URLSearchParams(window.location.search);
     const tabParam = urlParams.get('tab');
     const tabMap = {
@@ -735,6 +735,12 @@ document.addEventListener('DOMContentLoaded', () => {
     };
     const initialTab = tabMap[tabParam] || 'settingsTabPharmacy';
     activateSettingsTab(initialTab);
+
+    // Also handle clicking the License tab button directly (fallback)
+    var licBtn = document.getElementById('settingsTabBtnLicense');
+    if(licBtn){
+        licBtn.addEventListener('click', function(){ activateSettingsTab('settingsTabLicense'); });
+    }
 
     // Initialize SMS provider sections
     toggleSmsProviderSections();
